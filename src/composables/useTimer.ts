@@ -5,6 +5,8 @@ export type TimerMode = "idle" | "work" | "break";
 export interface UseTimerOptions {
   workDurationMs?: number;
   breakDurationMs?: number;
+  onWorkEnd?: () => void;
+  onBreakEnd?: () => void;
 }
 
 /**
@@ -13,8 +15,8 @@ export interface UseTimerOptions {
  * - 内部用单一 setInterval + 时间戳避免计时漂移
  */
 export function useTimer(options: UseTimerOptions = {}) {
-  const workDurationMs = options.workDurationMs ?? 25 * 60 * 1000;
-  const breakDurationMs = options.breakDurationMs ?? 5 * 60 * 1000;
+  const workDurationMs = options.workDurationMs ?? 1 * 3 * 1000;
+  const breakDurationMs = options.breakDurationMs ?? 1 * 3 * 1000;
 
   const mode = ref<TimerMode>("idle");
   // 初始和重置时都显示完整一个工作时长，方便用户一眼看到 25:00
@@ -55,9 +57,11 @@ export function useTimer(options: UseTimerOptions = {}) {
         // 工作结束 -> 进入休息
         cycleCount.value += 1;
         setMode("break");
+        options.onWorkEnd?.();
       } else if (mode.value === "break") {
         // 休息结束 -> 回到工作
         setMode("work");
+        options.onBreakEnd?.();
       } else {
         // idle 理论上不会走到这里
         isRunning.value = false;
@@ -104,6 +108,7 @@ export function useTimer(options: UseTimerOptions = {}) {
   function skipBreak() {
     if (mode.value !== "break") return;
     setMode("work");
+    options.onBreakEnd?.();
     if (isRunning.value) {
       ensureIntervalRunning();
     }

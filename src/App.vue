@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from "@tauri-apps/plugin-notification";
 import TimerPanel from "./components/TimerPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
@@ -7,7 +13,47 @@ import { useTimer } from "./composables/useTimer";
 
 const showSettings = ref(false);
 
-const timer = useTimer();
+const timer = useTimer({
+  onWorkEnd: async () => {
+    try {
+      // 1. 窗口置顶并获取焦点
+      const win = getCurrentWindow();
+      await win.setAlwaysOnTop(true);
+      await win.setFocus();
+
+      const audio = new Audio("/notification-piano.mp3");
+      audio.play();
+      
+      // 2. 发送系统通知
+      let permissionGranted = await isPermissionGranted();
+      if (!permissionGranted) {
+        const permission = await requestPermission();
+        permissionGranted = permission === "granted";
+      }
+
+      if (permissionGranted) {
+        sendNotification({
+          title: "休息时间到！",
+          body: "工作辛苦了，起来活动一下吧！",
+          sound: "default",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to handle work end:", e);
+    }
+  },
+  onBreakEnd: async () => {
+    try {
+      const win = getCurrentWindow();
+      await win.setAlwaysOnTop(false);
+
+      const audio = new Audio("/notification-chime.mp3");
+      audio.play();
+    } catch (e) {
+      console.error("Failed to reset window top:", e);
+    }
+  },
+});
 
 const breakVisible = computed(() => timer.mode.value === "break");
 const breakRemainingSeconds = computed(() =>
