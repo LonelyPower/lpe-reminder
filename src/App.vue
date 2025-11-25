@@ -7,7 +7,6 @@ import { useTimer } from "./composables/useTimer";
 
 const showSettings = ref(false);
 
-// 阶段0：先使用 useTimer 的占位实现
 const timer = useTimer();
 
 const breakVisible = computed(() => timer.mode.value === "break");
@@ -37,6 +36,12 @@ function closeSettings() {
       :mode="timer.mode.value"
       :remaining-ms="timer.remainingMs.value"
       :cycle-count="timer.cycleCount.value"
+      :total-duration-ms="timer.totalDurationMs.value"
+      :is-running="timer.isRunning.value"
+      @start="timer.start()"
+      @pause="timer.pause()"
+      @reset="timer.reset()"
+      @skip-break="timer.skipBreak()"
     />
 
     <BreakOverlay
