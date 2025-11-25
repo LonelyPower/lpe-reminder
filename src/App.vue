@@ -20,7 +20,8 @@ const timer = useTimer({
       const win = getCurrentWindow();
       await win.setAlwaysOnTop(true);
       await win.setFocus();
-
+      const audio = new Audio("/notification-chime.mp3");
+      audio.play();
       // 2. 发送系统通知
       let permissionGranted = await isPermissionGranted();
       if (!permissionGranted) {
