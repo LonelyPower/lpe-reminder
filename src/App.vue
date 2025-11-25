@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import TimerPanel from "./components/TimerPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
@@ -7,7 +8,25 @@ import { useTimer } from "./composables/useTimer";
 
 const showSettings = ref(false);
 
-const timer = useTimer();
+const timer = useTimer({
+  onWorkEnd: async () => {
+    try {
+      const win = getCurrentWindow();
+      await win.setAlwaysOnTop(true);
+      await win.setFocus();
+    } catch (e) {
+      console.error("Failed to set window focus/top:", e);
+    }
+  },
+  onBreakEnd: async () => {
+    try {
+      const win = getCurrentWindow();
+      await win.setAlwaysOnTop(false);
+    } catch (e) {
+      console.error("Failed to reset window top:", e);
+    }
+  },
+});
 
 const breakVisible = computed(() => timer.mode.value === "break");
 const breakRemainingSeconds = computed(() =>
