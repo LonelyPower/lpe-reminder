@@ -2,7 +2,9 @@ import { reactive, watch } from "vue";
 
 export interface AppSettings {
   workDurationMinutes: number;
+  workDurationSeconds: number;
   breakDurationMinutes: number;
+  breakDurationSeconds: number;
   enableworkSound: boolean;
   enablerestSound: boolean;
   enableNotification: boolean;
@@ -12,7 +14,9 @@ const STORAGE_KEY = "lpe-reminder-settings";
 
 const defaultSettings: AppSettings = {
   workDurationMinutes: 25,
+  workDurationSeconds: 0,
   breakDurationMinutes: 5,
+  breakDurationSeconds: 0,
   enableworkSound: true,
   enablerestSound: true,
   enableNotification: true,

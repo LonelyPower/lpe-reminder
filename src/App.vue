@@ -17,8 +17,10 @@ const showSettings = ref(false);
 const { settings } = useSettings();
 
 const timer = useTimer({
-  workDurationMs: settings.workDurationMinutes * 60 * 1000,
-  breakDurationMs: settings.breakDurationMinutes * 60 * 1000,
+  workDurationMs:
+    (settings.workDurationMinutes * 60 + settings.workDurationSeconds) * 1000,
+  breakDurationMs:
+    (settings.breakDurationMinutes * 60 + settings.breakDurationSeconds) * 1000,
   onWorkEnd: async () => {
     try {
       // 1. 窗口置顶并获取焦点
@@ -68,11 +70,16 @@ const timer = useTimer({
 
 // 监听设置变化，动态更新计时器配置
 watch(
-  () => [settings.workDurationMinutes, settings.breakDurationMinutes],
-  ([newWork, newBreak]) => {
+  () => [
+    settings.workDurationMinutes,
+    settings.workDurationSeconds,
+    settings.breakDurationMinutes,
+    settings.breakDurationSeconds,
+  ],
+  ([newWorkMin, newWorkSec, newBreakMin, newBreakSec]) => {
     timer.updateDurations(
-      (newWork as number) * 60 * 1000,
-      (newBreak as number) * 60 * 1000
+      ((newWorkMin as number) * 60 + (newWorkSec as number)) * 1000,
+      ((newBreakMin as number) * 60 + (newBreakSec as number)) * 1000
     );
   }
 );

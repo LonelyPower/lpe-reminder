@@ -25,25 +25,49 @@ const { settings, resetToDefault } = useSettings();
         <section class="dialog-body">
           <div class="form-group">
             <label>
-              <span>工作时长 (分钟)</span>
-              <input
-                type="number"
-                v-model.number="settings.workDurationMinutes"
-                min="1"
-                max="120"
-              />
+              <span>工作时长</span>
+              <div class="time-inputs">
+                <input
+                  type="number"
+                  v-model.number="settings.workDurationMinutes"
+                  min="0"
+                  max="120"
+                  placeholder="分"
+                />
+                <span class="unit">分</span>
+                <input
+                  type="number"
+                  v-model.number="settings.workDurationSeconds"
+                  min="0"
+                  max="59"
+                  placeholder="秒"
+                />
+                <span class="unit">秒</span>
+              </div>
             </label>
           </div>
 
           <div class="form-group">
             <label>
-              <span>休息时长 (分钟)</span>
-              <input
-                type="number"
-                v-model.number="settings.breakDurationMinutes"
-                min="1"
-                max="60"
-              />
+              <span>休息时长</span>
+              <div class="time-inputs">
+                <input
+                  type="number"
+                  v-model.number="settings.breakDurationMinutes"
+                  min="0"
+                  max="60"
+                  placeholder="分"
+                />
+                <span class="unit">分</span>
+                <input
+                  type="number"
+                  v-model.number="settings.breakDurationSeconds"
+                  min="0"
+                  max="59"
+                  placeholder="秒"
+                />
+                <span class="unit">秒</span>
+              </div>
             </label>
           </div>
 
@@ -120,12 +144,23 @@ const { settings, resetToDefault } = useSettings();
 }
 
 .form-group input[type="number"] {
-  width: 80px;
+  width: 60px;
   padding: 6px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
   text-align: right;
+}
+
+.time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unit {
+  font-size: 14px;
+  color: #6b7280;
 }
 
 .checkbox-group label {
