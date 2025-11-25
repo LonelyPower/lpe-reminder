@@ -17,7 +17,8 @@ export function useTimer(options: UseTimerOptions = {}) {
   const breakDurationMs = options.breakDurationMs ?? 5 * 60 * 1000;
 
   const mode = ref<TimerMode>("idle");
-  const remainingMs = ref(0);
+  // 初始和重置时都显示完整一个工作时长，方便用户一眼看到 25:00
+  const remainingMs = ref(workDurationMs);
   const cycleCount = ref(0);
   const isRunning = ref(false);
 
@@ -92,7 +93,7 @@ export function useTimer(options: UseTimerOptions = {}) {
     isRunning.value = false;
     clearTimer();
     mode.value = "idle";
-    remainingMs.value = 0;
+    remainingMs.value = workDurationMs;
   }
 
   /**
@@ -109,6 +110,7 @@ export function useTimer(options: UseTimerOptions = {}) {
   }
 
   const totalDurationMs = computed(() => {
+    if (mode.value === "idle") return workDurationMs;
     if (mode.value === "work") return workDurationMs;
     if (mode.value === "break") return breakDurationMs;
     return 0;
