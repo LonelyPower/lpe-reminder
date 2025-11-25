@@ -22,6 +22,8 @@ export function useTimer(options: UseTimerOptions = {}) {
   const mode = ref<TimerMode>("idle");
   // 初始和重置时都显示完整一个工作时长，方便用户一眼看到 25:00
   const remainingMs = ref(workDurationMs.value);
+  // 记录当前周期的总时长，用于计算进度条，避免配置修改时进度条跳变
+  const currentTotalDurationMs = ref(workDurationMs.value);
   const cycleCount = ref(0);
   const isRunning = ref(false);
 
@@ -34,6 +36,7 @@ export function useTimer(options: UseTimerOptions = {}) {
     // 如果处于 idle 状态，立即更新显示时间
     if (mode.value === "idle") {
       remainingMs.value = newWorkMs;
+      currentTotalDurationMs.value = newWorkMs;
     }
   }
 
@@ -48,10 +51,13 @@ export function useTimer(options: UseTimerOptions = {}) {
     mode.value = next;
     if (next === "work") {
       remainingMs.value = workDurationMs.value;
+      currentTotalDurationMs.value = workDurationMs.value;
     } else if (next === "break") {
       remainingMs.value = breakDurationMs.value;
+      currentTotalDurationMs.value = breakDurationMs.value;
     } else {
       remainingMs.value = 0;
+      currentTotalDurationMs.value = 0;
     }
   }
 
@@ -108,6 +114,7 @@ export function useTimer(options: UseTimerOptions = {}) {
     clearTimer();
     mode.value = "idle";
     remainingMs.value = workDurationMs.value;
+    currentTotalDurationMs.value = workDurationMs.value;
   }
 
   /**
@@ -124,12 +131,7 @@ export function useTimer(options: UseTimerOptions = {}) {
     }
   }
 
-  const totalDurationMs = computed(() => {
-    if (mode.value === "idle") return workDurationMs.value;
-    if (mode.value === "work") return workDurationMs.value;
-    if (mode.value === "break") return breakDurationMs.value;
-    return 0;
-  });
+  const totalDurationMs = computed(() => currentTotalDurationMs.value);
 
   onBeforeUnmount(() => {
     clearTimer();
