@@ -1,160 +1,83 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { ref, computed } from "vue";
+import TimerPanel from "./components/TimerPanel.vue";
+import BreakOverlay from "./components/BreakOverlay.vue";
+import SettingsDialog from "./components/SettingsDialog.vue";
+import { useTimer } from "./composables/useTimer";
 
-const greetMsg = ref("");
-const name = ref("");
+const showSettings = ref(false);
 
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  greetMsg.value = await invoke("greet", { name: name.value });
+// 阶段0：先使用 useTimer 的占位实现
+const timer = useTimer();
+
+const breakVisible = computed(() => timer.mode.value === "break");
+const breakRemainingSeconds = computed(() =>
+  Math.max(0, Math.floor(timer.remainingMs.value / 1000))
+);
+
+function openSettings() {
+  showSettings.value = true;
+}
+
+function closeSettings() {
+  showSettings.value = false;
 }
 </script>
 
 <template>
-  <main class="container">
-    <h1>Welcome to Tauri + Vue</h1>
+  <main class="app-root">
+    <header class="app-header">
+      <h1 class="app-title">护眼定时器（预览版）</h1>
+      <button type="button" class="settings-btn" @click="openSettings">
+        设置
+      </button>
+    </header>
 
-    <div class="row">
-      <a href="https://vite.dev" target="_blank">
-        <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-      </a>
-      <a href="https://tauri.app" target="_blank">
-        <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://vuejs.org/" target="_blank">
-        <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-      </a>
-    </div>
-    <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
+    <TimerPanel
+      :mode="timer.mode"
+      :remaining-ms="timer.remainingMs"
+      :cycle-count="timer.cycleCount"
+    />
 
-    <form class="row" @submit.prevent="greet">
-      <input id="greet-input" v-model="name" placeholder="Enter a name..." />
-      <button type="submit">Greet</button>
-    </form>
-    <p>{{ greetMsg }}</p>
+    <BreakOverlay
+      :visible="breakVisible"
+      :remaining-seconds="breakRemainingSeconds"
+      @skip="timer.skipBreak()"
+    />
+
+    <SettingsDialog :visible="showSettings" @close="closeSettings" />
   </main>
 </template>
 
 <style scoped>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
+.app-root {
+  min-height: 100vh;
+  padding: 24px 16px 40px;
+  background: radial-gradient(circle at top left, #e0f2fe, #f9fafb);
 }
 
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #249b73);
-}
-
-</style>
-<style>
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
+.app-header {
+  max-width: 720px;
+  margin: 0 auto 12px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
+.app-title {
+  font-size: 20px;
 }
 
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
+.settings-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
   cursor: pointer;
 }
 
-button:hover {
-  border-color: #396cd8;
+.settings-btn:hover {
+  background: #f3f4f6;
 }
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
-
 </style>
