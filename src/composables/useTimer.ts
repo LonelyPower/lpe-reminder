@@ -15,17 +15,27 @@ export interface UseTimerOptions {
  * - 内部用单一 setInterval + 时间戳避免计时漂移
  */
 export function useTimer(options: UseTimerOptions = {}) {
-  const workDurationMs = options.workDurationMs ?? 1 * 3 * 1000;
-  const breakDurationMs = options.breakDurationMs ?? 1 * 3 * 1000;
+  // 使用 ref 来存储时长，以便后续更新
+  const workDurationMs = ref(options.workDurationMs ?? 25 * 1 * 1000);
+  const breakDurationMs = ref(options.breakDurationMs ?? 5 * 1 * 1000);
 
   const mode = ref<TimerMode>("idle");
   // 初始和重置时都显示完整一个工作时长，方便用户一眼看到 25:00
-  const remainingMs = ref(workDurationMs);
+  const remainingMs = ref(workDurationMs.value);
   const cycleCount = ref(0);
   const isRunning = ref(false);
 
   let intervalId: number | null = null;
   let lastTick = 0; // 上一次 tick 的时间戳（ms）
+
+  function updateDurations(newWorkMs: number, newBreakMs: number) {
+    workDurationMs.value = newWorkMs;
+    breakDurationMs.value = newBreakMs;
+    // 如果处于 idle 状态，立即更新显示时间
+    if (mode.value === "idle") {
+      remainingMs.value = newWorkMs;
+    }
+  }
 
   function clearTimer() {
     if (intervalId !== null) {
@@ -37,9 +47,9 @@ export function useTimer(options: UseTimerOptions = {}) {
   function setMode(next: TimerMode) {
     mode.value = next;
     if (next === "work") {
-      remainingMs.value = workDurationMs;
+      remainingMs.value = workDurationMs.value;
     } else if (next === "break") {
-      remainingMs.value = breakDurationMs;
+      remainingMs.value = breakDurationMs.value;
     } else {
       remainingMs.value = 0;
     }
@@ -97,7 +107,7 @@ export function useTimer(options: UseTimerOptions = {}) {
     isRunning.value = false;
     clearTimer();
     mode.value = "idle";
-    remainingMs.value = workDurationMs;
+    remainingMs.value = workDurationMs.value;
   }
 
   /**
@@ -115,9 +125,9 @@ export function useTimer(options: UseTimerOptions = {}) {
   }
 
   const totalDurationMs = computed(() => {
-    if (mode.value === "idle") return workDurationMs;
-    if (mode.value === "work") return workDurationMs;
-    if (mode.value === "break") return breakDurationMs;
+    if (mode.value === "idle") return workDurationMs.value;
+    if (mode.value === "work") return workDurationMs.value;
+    if (mode.value === "break") return breakDurationMs.value;
     return 0;
   });
 
@@ -135,5 +145,6 @@ export function useTimer(options: UseTimerOptions = {}) {
     pause,
     reset,
     skipBreak,
+    updateDurations,
   };
 }

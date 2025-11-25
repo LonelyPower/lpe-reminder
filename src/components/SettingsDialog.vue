@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from "vue";
+import { useSettings } from "../composables/useSettings";
 
 interface Props {
   visible: boolean;
@@ -10,21 +11,68 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   (e: "close"): void;
 }>();
+
+const { settings, resetToDefault } = useSettings();
 </script>
 
 <template>
   <teleport to="body">
-    <div v-if="props.visible" class="backdrop">
+    <div v-if="props.visible" class="backdrop" @click.self="emit('close')">
       <div class="dialog" role="dialog" aria-modal="true">
         <header class="dialog-header">
           <h2>设置</h2>
         </header>
         <section class="dialog-body">
-          <!-- 阶段0：先放占位文案，后续用真正表单替换 -->
-          <p>这里将来可以配置工作/休息时长、音乐等选项。</p>
+          <div class="form-group">
+            <label>
+              <span>工作时长 (分钟)</span>
+              <input
+                type="number"
+                v-model.number="settings.workDurationMinutes"
+                min="1"
+                max="120"
+              />
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <span>休息时长 (分钟)</span>
+              <input
+                type="number"
+                v-model.number="settings.breakDurationMinutes"
+                min="1"
+                max="60"
+              />
+            </label>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="settings.enableworkSound" />
+              <span>启用工作结束提示音</span>
+            </label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="settings.enablerestSound" />
+              <span>启用休息结束提示音</span>
+            </label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="settings.enableNotification" />
+              <span>启用系统通知</span>
+            </label>
+          </div>
         </section>
         <footer class="dialog-footer">
-          <button type="button" @click="emit('close')">关闭</button>
+          <button type="button" class="ghost" @click="resetToDefault">
+            恢复默认
+          </button>
+          <button type="button" class="primary" @click="emit('close')">
+            完成
+          </button>
         </footer>
       </div>
     </div>
@@ -46,36 +94,84 @@ const emit = defineEmits<{
   width: min(480px, 90vw);
   border-radius: 16px;
   background: #ffffff;
-  padding: 20px 20px 16px;
+  padding: 24px;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
 }
 
 .dialog-header h2 {
-  font-size: 18px;
-  margin-bottom: 12px;
+  font-size: 20px;
+  margin-bottom: 20px;
+  font-weight: 600;
 }
 
 .dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 14px;
-  color: #4b5563;
-  margin-bottom: 16px;
+  color: #374151;
+}
+
+.form-group input[type="number"] {
+  width: 80px;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.checkbox-group label {
+  justify-content: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
 }
 
 .dialog-footer button {
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
+  padding: 8px 16px;
+  border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
 }
 
-.dialog-footer button:hover {
+.primary {
+  background: #38bdf8;
+  color: #ffffff;
+  border-color: #0ea5e9;
+}
+
+.primary:hover {
+  background: #0ea5e9;
+}
+
+.ghost {
+  background: transparent;
+  color: #6b7280;
+}
+
+.ghost:hover {
   background: #f3f4f6;
+  color: #374151;
 }
 </style>
