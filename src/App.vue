@@ -34,9 +34,9 @@ function closeSettings() {
     </header>
 
     <TimerPanel
-      :mode="timer.mode"
-      :remaining-ms="timer.remainingMs"
-      :cycle-count="timer.cycleCount"
+      :mode="timer.mode.value"
+      :remaining-ms="timer.remainingMs.value"
+      :cycle-count="timer.cycleCount.value"
     />
 
     <BreakOverlay
