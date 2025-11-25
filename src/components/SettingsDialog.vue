@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits } from "vue";
+import { defineProps, defineEmits, reactive, watch } from "vue";
 import { useSettings } from "../composables/useSettings";
 
 interface Props {
@@ -12,7 +12,29 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const { settings, resetToDefault } = useSettings();
+const { settings: globalSettings, defaultSettings } = useSettings();
+
+// 本地状态，用于表单编辑，避免实时修改全局配置
+const localSettings = reactive({ ...globalSettings });
+
+// 当弹窗打开时，同步全局配置到本地
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      Object.assign(localSettings, globalSettings);
+    }
+  }
+);
+
+function handleSave() {
+  Object.assign(globalSettings, localSettings);
+  emit("close");
+}
+
+function handleResetLocal() {
+  Object.assign(localSettings, defaultSettings);
+}
 </script>
 
 <template>
@@ -29,7 +51,7 @@ const { settings, resetToDefault } = useSettings();
               <div class="time-inputs">
                 <input
                   type="number"
-                  v-model.number="settings.workDurationMinutes"
+                  v-model.number="localSettings.workDurationMinutes"
                   min="0"
                   max="120"
                   placeholder="分"
@@ -37,7 +59,7 @@ const { settings, resetToDefault } = useSettings();
                 <span class="unit">分</span>
                 <input
                   type="number"
-                  v-model.number="settings.workDurationSeconds"
+                  v-model.number="localSettings.workDurationSeconds"
                   min="0"
                   max="59"
                   placeholder="秒"
@@ -53,7 +75,7 @@ const { settings, resetToDefault } = useSettings();
               <div class="time-inputs">
                 <input
                   type="number"
-                  v-model.number="settings.breakDurationMinutes"
+                  v-model.number="localSettings.breakDurationMinutes"
                   min="0"
                   max="60"
                   placeholder="分"
@@ -61,7 +83,7 @@ const { settings, resetToDefault } = useSettings();
                 <span class="unit">分</span>
                 <input
                   type="number"
-                  v-model.number="settings.breakDurationSeconds"
+                  v-model.number="localSettings.breakDurationSeconds"
                   min="0"
                   max="59"
                   placeholder="秒"
@@ -73,28 +95,31 @@ const { settings, resetToDefault } = useSettings();
 
           <div class="form-group checkbox-group">
             <label>
-              <input type="checkbox" v-model="settings.enableworkSound" />
+              <input type="checkbox" v-model="localSettings.enableworkSound" />
               <span>启用工作结束提示音</span>
             </label>
           </div>
           <div class="form-group checkbox-group">
             <label>
-              <input type="checkbox" v-model="settings.enablerestSound" />
+              <input type="checkbox" v-model="localSettings.enablerestSound" />
               <span>启用休息结束提示音</span>
             </label>
           </div>
           <div class="form-group checkbox-group">
             <label>
-              <input type="checkbox" v-model="settings.enableNotification" />
+              <input type="checkbox" v-model="localSettings.enableNotification" />
               <span>启用系统通知</span>
             </label>
           </div>
         </section>
         <footer class="dialog-footer">
-          <button type="button" class="ghost" @click="resetToDefault">
+          <button type="button" class="ghost" @click="handleResetLocal">
             恢复默认
           </button>
-          <button type="button" class="primary" @click="emit('close')">
+          <button type="button" class="ghost" @click="emit('close')">
+            取消
+          </button>
+          <button type="button" class="primary" @click="handleSave">
             完成
           </button>
         </footer>

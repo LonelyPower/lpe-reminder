@@ -96,6 +96,15 @@ function openSettings() {
 function closeSettings() {
   showSettings.value = false;
 }
+
+function handleReset() {
+  // 强制从 settings 更新一次 duration，确保重置时使用最新配置
+  timer.updateDurations(
+    (settings.workDurationMinutes * 60 + settings.workDurationSeconds) * 1000,
+    (settings.breakDurationMinutes * 60 + settings.breakDurationSeconds) * 1000
+  );
+  timer.reset();
+}
 </script>
 
 <template>
@@ -115,7 +124,7 @@ function closeSettings() {
       :is-running="timer.isRunning.value"
       @start="timer.start()"
       @pause="timer.pause()"
-      @reset="timer.reset()"
+      @reset="handleReset"
       @skip-break="timer.skipBreak()"
     />
 

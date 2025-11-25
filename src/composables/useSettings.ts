@@ -22,36 +22,37 @@ const defaultSettings: AppSettings = {
   enableNotification: true,
 };
 
-export function useSettings() {
-  // 1. 初始化：尝试从 localStorage 读取，失败则使用默认值
-  const saved = localStorage.getItem(STORAGE_KEY);
-  let initial: AppSettings = defaultSettings;
+// 1. 初始化：尝试从 localStorage 读取，失败则使用默认值
+const saved = localStorage.getItem(STORAGE_KEY);
+let initial: AppSettings = defaultSettings;
 
-  if (saved) {
-    try {
-      initial = { ...defaultSettings, ...JSON.parse(saved) };
-    } catch (e) {
-      console.error("Failed to parse settings:", e);
-    }
+if (saved) {
+  try {
+    initial = { ...defaultSettings, ...JSON.parse(saved) };
+  } catch (e) {
+    console.error("Failed to parse settings:", e);
   }
+}
 
-  const settings = reactive<AppSettings>(initial);
+const settings = reactive<AppSettings>(initial);
 
-  // 2. 监听变更：自动保存到 localStorage
-  watch(
-    settings,
-    (newSettings) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-    },
-    { deep: true }
-  );
+// 2. 监听变更：自动保存到 localStorage
+watch(
+  settings,
+  (newSettings) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+  },
+  { deep: true }
+);
 
+export function useSettings() {
   function resetToDefault() {
     Object.assign(settings, defaultSettings);
   }
 
   return {
     settings,
+    defaultSettings,
     resetToDefault,
   };
 }
