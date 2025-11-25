@@ -16,7 +16,7 @@ export interface UseTimerOptions {
  */
 export function useTimer(options: UseTimerOptions = {}) {
   const workDurationMs = options.workDurationMs ?? 1 * 3 * 1000;
-  const breakDurationMs = options.breakDurationMs ?? 5 * 60 * 1000;
+  const breakDurationMs = options.breakDurationMs ?? 1 * 3 * 1000;
 
   const mode = ref<TimerMode>("idle");
   // 初始和重置时都显示完整一个工作时长，方便用户一眼看到 25:00
