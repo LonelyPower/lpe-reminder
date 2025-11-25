@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from "@tauri-apps/plugin-notification";
 import TimerPanel from "./components/TimerPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
@@ -11,11 +16,27 @@ const showSettings = ref(false);
 const timer = useTimer({
   onWorkEnd: async () => {
     try {
+      // 1. 窗口置顶并获取焦点
       const win = getCurrentWindow();
       await win.setAlwaysOnTop(true);
       await win.setFocus();
+
+      // 2. 发送系统通知
+      let permissionGranted = await isPermissionGranted();
+      if (!permissionGranted) {
+        const permission = await requestPermission();
+        permissionGranted = permission === "granted";
+      }
+
+      if (permissionGranted) {
+        sendNotification({
+          title: "休息时间到！",
+          body: "工作辛苦了，起来活动一下吧！",
+          sound: "default",
+        });
+      }
     } catch (e) {
-      console.error("Failed to set window focus/top:", e);
+      console.error("Failed to handle work end:", e);
     }
   },
   onBreakEnd: async () => {
