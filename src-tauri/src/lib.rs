@@ -1,7 +1,7 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Emitter, Manager, image::Image,
 };
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -22,9 +22,56 @@ fn set_tray_icon(app: tauri::AppHandle, state: &str) {
         };
         let _ = tray.set_tooltip(Some(tooltip));
         
-        // TODO: 如果有不同状态的图标文件，可以在这里切换
-        // 目前先使用同一个图标，通过 tooltip 区分状态
-        // 可以后续添加 idle.png, working.png, paused.png, break.png
+        // 根据状态切换图标
+        let icon_filename = match state {
+            "working" | "break" => "power-tray-busy.png",
+            "paused" => "power-tray-pause.png",
+            _ => "power-tray-idle.png",
+        };
+        
+        // 尝试从多个可能的路径加载图标
+        let mut possible_paths = vec![
+            // 开发模式：src-tauri/icons/
+            Some(std::path::PathBuf::from(format!("src-tauri/icons/{}", icon_filename))),
+            // 相对于当前目录
+            Some(std::path::PathBuf::from(format!("icons/{}", icon_filename))),
+        ];
+        
+        // 添加 Tauri 资源路径
+        if let Ok(resource_path) = app.path().resolve(format!("icons/{}", icon_filename), tauri::path::BaseDirectory::Resource) {
+            possible_paths.push(Some(resource_path));
+        }
+        
+        let mut icon_loaded = false;
+        for path_option in possible_paths {
+            if let Some(icon_path) = path_option {
+                if icon_path.exists() {
+                    match image::open(&icon_path) {
+                        Ok(img) => {
+                            let rgba = img.to_rgba8();
+                            let (width, height) = rgba.dimensions();
+                            let raw_data = rgba.into_raw();
+                            let icon = Image::new(&raw_data, width, height);
+                            
+                            if let Err(e) = tray.set_icon(Some(icon)) {
+                                eprintln!("Failed to set tray icon: {}", e);
+                            } else {
+                                println!("Tray icon updated to: {} from {:?}", state, icon_path);
+                                icon_loaded = true;
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to load icon from {:?}: {}", icon_path, e);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if !icon_loaded {
+            eprintln!("Could not find icon file: {}", icon_filename);
+        }
     }
 }
 
