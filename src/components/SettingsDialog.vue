@@ -47,6 +47,16 @@ function handleResetLocal() {
         <section class="dialog-body">
           <div class="form-group">
             <label>
+              <span>计时器模式</span>
+              <select v-model="localSettings.timerMode" class="select-input">
+                <option value="countdown">倒计时模式</option>
+                <option value="stopwatch">正计时模式</option>
+              </select>
+            </label>
+          </div>
+
+          <div v-if="localSettings.timerMode === 'countdown'" class="form-group">
+            <label>
               <span>工作时长</span>
               <div class="time-inputs">
                 <input
@@ -69,7 +79,7 @@ function handleResetLocal() {
             </label>
           </div>
 
-          <div class="form-group">
+          <div v-if="localSettings.timerMode === 'countdown'" class="form-group">
             <label>
               <span>休息时长</span>
               <div class="time-inputs">
@@ -84,6 +94,30 @@ function handleResetLocal() {
                 <input
                   type="number"
                   v-model.number="localSettings.breakDurationSeconds"
+                  min="0"
+                  max="59"
+                  placeholder="秒"
+                />
+                <span class="unit">秒</span>
+              </div>
+            </label>
+          </div>
+
+          <div v-if="localSettings.timerMode === 'stopwatch'" class="form-group">
+            <label>
+              <span>正计时休息时长</span>
+              <div class="time-inputs">
+                <input
+                  type="number"
+                  v-model.number="localSettings.stopwatchBreakMinutes"
+                  min="0"
+                  max="60"
+                  placeholder="分"
+                />
+                <span class="unit">分</span>
+                <input
+                  type="number"
+                  v-model.number="localSettings.stopwatchBreakSeconds"
                   min="0"
                   max="59"
                   placeholder="秒"

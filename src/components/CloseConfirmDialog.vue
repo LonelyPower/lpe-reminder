@@ -9,6 +9,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   (e: "confirm", minimize: boolean, remember: boolean): void;
+  (e: "cancel"): void;
 }>();
 
 const rememberChoice = ref(false);
@@ -22,6 +23,11 @@ function handleQuit() {
   emit("confirm", false, rememberChoice.value);
   rememberChoice.value = false;
 }
+
+function handleCancel() {
+  emit("cancel");
+  rememberChoice.value = false;
+}
 </script>
 
 <template>
@@ -30,6 +36,12 @@ function handleQuit() {
       <div class="dialog" role="dialog" aria-modal="true">
         <header class="dialog-header">
           <h2>关闭应用</h2>
+          <button type="button" class="close-btn" @click="handleCancel" aria-label="取消">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </header>
         <section class="dialog-body">
           <p class="message">是否最小化到托盘而不是退出应用？</p>
@@ -70,10 +82,41 @@ function handleQuit() {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
 }
 
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
 .dialog-header h2 {
   font-size: 18px;
-  margin-bottom: 16px;
   font-weight: 600;
+  margin: 0;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.close-btn:active {
+  background: #e5e7eb;
 }
 
 .dialog-body {

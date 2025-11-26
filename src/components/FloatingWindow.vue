@@ -9,8 +9,10 @@ import { useSettings } from "../composables/useSettings";
 const { settings } = useSettings();
 
 // 接收主窗口同步的状态
+const timerMode = ref<"countdown" | "stopwatch">("countdown");
 const mode = ref<TimerMode>("idle");
 const remainingMs = ref(0);
+const elapsedMs = ref(0);
 const isRunning = ref(false);
 
 // 显示控制设置
@@ -38,10 +40,24 @@ const fontSize = computed(() => {
 // 拖拽功能相关状态（已移除，改用区域判断）
 
 // 计算显示的时间
-const displayTime = computed(() => formatTime(remainingMs.value));
+const displayTime = computed(() => {
+  if (timerMode.value === "stopwatch") {
+    return formatTime(elapsedMs.value);
+  }
+  return formatTime(remainingMs.value);
+});
 
 // 根据状态显示颜色
 const stateColor = computed(() => {
+  if (timerMode.value === "stopwatch") {
+    // 正计时模式
+    if (mode.value === "break") return "#22c55e"; // 绿色 - 休息中
+    if (elapsedMs.value > 0 || isRunning.value) {
+      return isRunning.value ? "#10b981" : "#94a3b8"; // 绿色 - 计时中 / 灰色 - 暂停
+    }
+    return "#3b82f6"; // 蓝色 - 空闲
+  }
+  // 倒计时模式
   if (mode.value === "break") return "#22c55e"; // 绿色 - 休息中
   if (mode.value === "work") {
     return isRunning.value ? "#f59e0b" : "#94a3b8"; // 橙色 - 工作中 / 灰色 - 已暂停
@@ -51,6 +67,13 @@ const stateColor = computed(() => {
 
 // 状态文本
 const stateText = computed(() => {
+  if (timerMode.value === "stopwatch") {
+    // 正计时模式
+    if (mode.value === "break") return "休息中";
+    if (elapsedMs.value === 0 && !isRunning.value) return "空闲";
+    return isRunning.value ? "计时中" : "已暂停";
+  }
+  // 倒计时模式
   if (mode.value === "break") return "休息中";
   if (mode.value === "work") {
     return isRunning.value ? "工作中" : "已暂停";
@@ -65,31 +88,25 @@ async function handleClick() {
   const mainWindow = windows.find((w) => w.label === "main");
 
   if (mainWindow) {
-    if (mode.value === "idle") {
-      // 空闲状态，点击开始工作
+    if (isRunning.value) {
+      await mainWindow.emit("float-pause", {});
+    } else {
       await mainWindow.emit("float-start", {});
-    } else if (mode.value === "work") {
-      // 工作状态，暂停或继续
-      if (isRunning.value) {
-        await mainWindow.emit("float-pause", {});
-      } else {
-        await mainWindow.emit("float-start", {});
-      }
     }
   }
 }
 
-// 右键菜单：创建一个新的独立窗口来显示菜单
-async function handleContextMenu(e: MouseEvent) {
+// 右键单击：显示主窗口
+async function handleRightClick(e: MouseEvent) {
   e.preventDefault();
-
-  // 创建简单的原生菜单，通过主窗口显示
+  
+  // 右键点击统一显示主窗口，不执行停止操作
+  // 用户可以在主窗口或通过左键点击来控制计时器
   const { getAllWindows } = await import("@tauri-apps/api/window");
   const windows = await getAllWindows();
   const mainWindow = windows.find((w) => w.label === "main");
 
   if (mainWindow) {
-    // 显示主窗口并打开设置（简化的右键操作）
     await mainWindow.show();
     await mainWindow.setFocus();
   }
@@ -124,12 +141,20 @@ onMounted(async () => {
   await win.setAlwaysOnTop(true);
 
   // 监听主窗口同步的计时器状态
-  await listen<{ mode: TimerMode; remainingMs: number; isRunning: boolean }>(
+  await listen<any>(
     "timer-state-sync",
     (event) => {
-      mode.value = event.payload.mode;
-      remainingMs.value = event.payload.remainingMs;
-      isRunning.value = event.payload.isRunning;
+      const payload = event.payload;
+      timerMode.value = payload.timerMode || "countdown";
+      
+      if (payload.timerMode === "stopwatch") {
+        elapsedMs.value = payload.elapsedMs || 0;
+        isRunning.value = payload.isRunning || false;
+      } else {
+        mode.value = payload.mode || "idle";
+        remainingMs.value = payload.remainingMs || 0;
+        isRunning.value = payload.isRunning || false;
+      }
     }
   );
 
@@ -154,7 +179,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="floating-window" :style="{ '--border-color': stateColor }" @contextmenu="handleContextMenu">
+  <div class="floating-window" :style="{ '--border-color': stateColor }" @contextmenu="handleRightClick">
     <div class="time-display" :style="{ color: stateColor, fontSize: fontSize + 'px' }" @click="handleTimeClick">
       <div v-if="showTimer" class="time-text">{{ displayTime }}</div>
       <div v-if="showState" class="state-text">{{ stateText }}</div>
