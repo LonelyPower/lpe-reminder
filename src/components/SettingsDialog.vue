@@ -111,6 +111,12 @@ function handleResetLocal() {
               <span>启用系统通知</span>
             </label>
           </div>
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.enableFloatingWindow" />
+              <span>启用悬浮窗</span>
+            </label>
+          </div>
 
           <div class="form-group">
             <label>

@@ -113,6 +113,33 @@ fn app_exit(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+#[tauri::command]
+fn toggle_floating_window(app: tauri::AppHandle, show: bool) -> Result<(), String> {
+    if let Some(float_window) = app.get_webview_window("float") {
+        if show {
+            float_window.show().map_err(|e| e.to_string())?;
+        } else {
+            float_window.hide().map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    } else {
+        Err("Float window not found".to_string())
+    }
+}
+
+#[tauri::command]
+fn show_tray_menu_at_cursor(app: tauri::AppHandle) -> Result<(), String> {
+    // 获取托盘图标
+    if let Some(_tray) = app.tray_by_id("tray") {
+        // TODO: Tauri v2 目前没有直接 API 在光标位置显示托盘菜单
+        // 作为替代方案，我们触发一个事件让前端响应
+        app.emit("show-tray-menu-requested", ()).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("Tray not found".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -174,7 +201,14 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, set_tray_icon, update_tray_menu, app_exit])
+        .invoke_handler(tauri::generate_handler![
+            greet, 
+            set_tray_icon, 
+            update_tray_menu, 
+            app_exit,
+            toggle_floating_window,
+            show_tray_menu_at_cursor
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

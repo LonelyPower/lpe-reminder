@@ -3,7 +3,8 @@
   "identifier": "default",
   "description": "Capability for the main window",
   "windows": [
-    "main"
+    "main",
+    "float"
   ],
   "permissions": [
     "core:default",
@@ -12,6 +13,10 @@
     "core:window:allow-set-always-on-top",
     "core:window:allow-hide",
     "core:window:allow-show",
+    "core:window:allow-outer-position",
+    "core:window:allow-set-position",
+    "core:event:allow-emit",
+    "core:event:allow-listen",
     "notification:default",
     "core:tray:default",
     "core:menu:default"
