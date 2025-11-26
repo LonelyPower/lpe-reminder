@@ -31,12 +31,16 @@ const timer = useTimer({
     settings.breakDurationSeconds
   ),
   onWorkEnd: async () => {
-    // 1. 窗口置顶并获取焦点
+    // 1. 显示、置顶并获取焦点
     const win = getCurrentWindow();
     await safeExecute(async () => {
+      // 先显示窗口（如果被隐藏）
+      await win.show();
+      // 然后置顶
       await win.setAlwaysOnTop(true);
+      // 最后获取焦点
       await win.setFocus();
-    }, "Set window always on top");
+    }, "Show and focus window on work end");
 
     // 2. 播放提示音
     if (settings.enableworkSound) {
