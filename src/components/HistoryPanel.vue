@@ -45,24 +45,30 @@ function formatDateTime(timestamp: number): string {
 // 获取记录类型文本
 function getRecordTypeText(record: TimerRecord): string {
   if (record.type === "countdown") {
-    return record.mode === "work" ? "工作" : "休息";
+    return record.mode === "work" ? "倒计时-工作" : "倒计时-休息";
   }
-  return "正计时";
+  // 正计时
+  return record.mode === "work" ? "正计时-工作" : "正计时-休息";
 }
 
 // 获取记录类型颜色
 function getRecordColor(record: TimerRecord): string {
-  if (record.type === "countdown") {
-    return record.mode === "work" ? "#f59e0b" : "#22c55e";
+  // 工作记录用橙色，休息记录用绿色
+  if (record.mode === "work") {
+    return "#f59e0b"; // 橙色 - 工作
   }
-  return "#10b981";
+  return "#22c55e"; // 绿色 - 休息
 }
 
 // 统计数据
 const todayRecords = computed(() => getTodayRecords());
 const weekRecords = computed(() => getWeekRecords());
-const todayTotal = computed(() => getTotalDuration(todayRecords.value));
-const weekTotal = computed(() => getTotalDuration(weekRecords.value));
+
+const todayWorkRecords = computed(() => todayRecords.value.filter(r => r.mode === "work"));
+const weekWorkRecords = computed(() => weekRecords.value.filter(r => r.mode === "work"));
+
+const todayWorkTotal = computed(() => getTotalDuration(todayWorkRecords.value));
+const weekWorkTotal = computed(() => getTotalDuration(weekWorkRecords.value));
 
 // 确认清空
 function handleClearAll() {
@@ -77,16 +83,26 @@ function handleClearAll() {
 <template>
   <div class="history-panel">
     <div class="stats-section">
-      <div class="stat-card">
-        <div class="stat-label">今日总计</div>
-        <div class="stat-value">{{ formatDuration(todayTotal) }}</div>
-        <div class="stat-count">{{ todayRecords.length }} 次</div>
+      <div class="stat-card work-card">
+        <div class="stat-label">今日工作</div>
+        <div class="stat-value">{{ formatDuration(todayWorkTotal) }}</div>
+        <div class="stat-count">{{ todayWorkRecords.length }} 次</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">本周总计</div>
-        <div class="stat-value">{{ formatDuration(weekTotal) }}</div>
-        <div class="stat-count">{{ weekRecords.length }} 次</div>
+      <!-- <div class="stat-card break-card">
+        <div class="stat-label">今日休息</div>
+        <div class="stat-value">{{ formatDuration(todayBreakTotal) }}</div>
+        <div class="stat-count">{{ todayBreakRecords.length }} 次</div>
+      </div> -->
+      <div class="stat-card work-card">
+        <div class="stat-label">本周工作</div>
+        <div class="stat-value">{{ formatDuration(weekWorkTotal) }}</div>
+        <div class="stat-count">{{ weekWorkRecords.length }} 次</div>
       </div>
+      <!-- <div class="stat-card break-card">
+        <div class="stat-label">本周休息</div>
+        <div class="stat-value">{{ formatDuration(weekBreakTotal) }}</div>
+        <div class="stat-count">{{ weekBreakRecords.length }} 次</div>
+      </div> -->
     </div>
 
     <div class="records-section">
@@ -163,6 +179,23 @@ function handleClearAll() {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-left: 4px solid transparent;
+}
+
+.stat-card.work-card {
+  border-left-color: #f59e0b;
+}
+
+.stat-card.work-card .stat-value {
+  color: #f59e0b;
+}
+
+.stat-card.break-card {
+  border-left-color: #22c55e;
+}
+
+.stat-card.break-card .stat-value {
+  color: #22c55e;
 }
 
 .stat-label {
@@ -174,7 +207,6 @@ function handleClearAll() {
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #111827;
   margin-bottom: 4px;
 }
 

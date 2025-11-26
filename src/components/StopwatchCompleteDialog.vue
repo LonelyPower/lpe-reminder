@@ -14,7 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const workName = ref("");
-const takeBreak = ref(false);
+const takeBreak = ref(true);
 
 // 格式化时长
 function formatDuration(ms: number): string {

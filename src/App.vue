@@ -147,11 +147,12 @@ const stopwatch = useStopwatch({
 
 // 监听正计时停止，显示完成对话框
 watch(
-  () => stopwatch.elapsedMs.value,
-  (newElapsed, oldElapsed) => {
-    // 当 elapsedMs 从非零变为零且不是休息模式（即调用了 stop()），显示对话框
-    if (oldElapsed > 0 && newElapsed === 0 && stopwatch.mode.value === "work") {
-      stopwatchWorkDuration.value = oldElapsed;
+  () => [stopwatch.elapsedMs.value, stopwatch.mode.value] as const,
+  ([newElapsed, newMode], [oldElapsed, oldMode]) => {
+    // 当 elapsedMs 从非零变为零，且在变化前是工作模式，且在变化后仍是工作模式（即调用了 stop()），显示对话框
+    // 这样可以避免休息结束时（mode 变为 work）触发弹窗
+    if ((oldElapsed as number) > 0 && (newElapsed as number) === 0 && oldMode === "work" && newMode === "work") {
+      stopwatchWorkDuration.value = oldElapsed as number;
       showStopwatchComplete.value = true;
       console.log("[Stopwatch] Work completed:", oldElapsed, "ms");
     }
