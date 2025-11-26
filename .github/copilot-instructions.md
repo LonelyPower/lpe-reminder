@@ -1,45 +1,120 @@
 # LPE Reminder - AI Coding Instructions
 
-## Project Context
-- **Framework**: Tauri v2 (Rust backend) + Vue 3 (Frontend) + Vite.
-- **Languages**: TypeScript (Frontend), Rust (Backend).
-- **Package Manager**: `pnpm`.
-- **Target Platforms**: Desktop (Windows/macOS/Linux) and Mobile (Android).
+## Project Overview
+A cross-platform eye care timer app built with **Tauri v2** (Rust) + **Vue 3** (TypeScript) + **Vite**.  
+Uses **pnpm** exclusively. Targets: Desktop (Windows/macOS/Linux) and Mobile (Android).
 
-## Architecture & Patterns
-- **Frontend Architecture**:
-  - Uses Vue 3 Composition API with `<script setup>`.
-  - **State Management**: Logic is decoupled from UI components. See `src/composables/useTimer.ts` for the core timer state machine (idle/work/break).
-  - **Components**: Located in `src/components/`. `TimerPanel.vue` handles the main display, `BreakOverlay.vue` for full-screen interruptions.
-- **Backend Architecture**:
-  - Rust code in `src-tauri/src/`.
-  - `lib.rs` is the main entry point for Tauri commands and setup.
-  - Communication via Tauri Commands (`invoke`).
-- **Timer Logic**:
-  - Implemented in `useTimer.ts` using `setInterval` and delta time calculation to prevent drift.
-  - State: `mode` (idle/work/break), `remainingMs`, `cycleCount`.
+## Architecture Patterns
+
+### State Management Philosophy
+**Strict separation**: Business logic lives in composables, UI components are purely reactive consumers.
+- `src/composables/useTimer.ts`: State machine (idle → work → break) with drift-free timing using `setInterval` + delta time calculation
+- `src/composables/useSettings.ts`: Reactive settings with automatic `localStorage` persistence via Vue `watch()`
+- Components (`TimerPanel.vue`, `BreakOverlay.vue`) receive state via props, emit events only
+
+### Frontend-Backend Bridge
+**Tauri Commands** (Rust → TS):
+```rust
+// Define in src-tauri/src/lib.rs
+#[tauri::command]
+fn greet(name: &str) -> String { ... }
+
+// Register in .invoke_handler()
+.invoke_handler(tauri::generate_handler![greet, set_tray_icon, app_exit])
+```
+```ts
+// Call from Vue
+import { invoke } from "@tauri-apps/api/core";
+await invoke("set_tray_icon", { state: "working" });
+```
+
+**Event Emission** (Rust → TS):
+```rust
+// Emit from menu/tray handlers
+app.emit("tray-start", ()).unwrap();
+```
+```ts
+// Listen in App.vue onMounted
+await listen("tray-start", () => timer.start());
+```
+
+### System Tray Integration
+Implemented in `lib.rs` `setup()` hook:
+- Menu items (`MenuItem::with_id`) trigger events via `.on_menu_event()`
+- Left-click tray icon shows/focuses main window (`.on_tray_icon_event()`)
+- Tooltip updated via `set_tray_icon` command (TODO: dynamic icon switching)
+
+### Window Lifecycle
+- **Close behavior**: Configurable in settings (`ask`/`minimize`/`quit`)
+- Handled via `getCurrentWindow().onCloseRequested()` in `App.vue`
+- Break mode: Window forced always-on-top (`setAlwaysOnTop(true)`) + full-screen overlay
 
 ## Critical Workflows
-- **Development**:
-  - Run app: `pnpm tauri dev` (starts both Rust and Vite servers).
-  - **Do not** run `pnpm dev` alone for app development; it lacks the Tauri context.
-- **Build**:
-  - Desktop: `pnpm tauri build`.
-  - Android: `pnpm tauri android build` (requires Android Studio/SDK setup).
-- **Dependency Management**:
-  - Always use `pnpm install/add`.
+
+### Development
+```bash
+pnpm tauri dev  # ALWAYS use this (starts Vite + Rust in Tauri context)
+# NEVER: pnpm dev (missing Tauri APIs)
+```
+- Vite runs on port `1420` (fixed, see `vite.config.ts`)
+- Hot reload works for Vue; Rust changes require restart
+
+### Build
+```bash
+pnpm tauri build          # Desktop (outputs to src-tauri/target/release)
+pnpm tauri android build  # Mobile (requires Android SDK)
+```
+
+### Adding Tauri Plugins
+1. Add Rust dependency: Edit `src-tauri/Cargo.toml`
+2. Initialize in `lib.rs`: `.plugin(tauri_plugin_xxx::init())`
+3. Grant permissions: Update `src-tauri/capabilities/default.json`
+4. Install TS types: `pnpm add @tauri-apps/plugin-xxx`
+
+Example (notification plugin already added):
+```json
+// capabilities/default.json
+"permissions": ["notification:default"]
+```
 
 ## Project-Specific Conventions
-- **Timer State**: When modifying timer logic, edit `src/composables/useTimer.ts` first. The UI should purely react to this state.
-- **Tauri Configuration**:
-  - `src-tauri/tauri.conf.json` controls window settings, permissions, and build scripts.
-  - Note the `beforeDevCommand` and `beforeBuildCommand` hooks.
-- **Rust/Frontend Bridge**:
-  - Define commands in `src-tauri/src/lib.rs` with `#[tauri::command]`.
-  - Register handlers in the `tauri::Builder` chain.
 
-## Key Files
-- `src/composables/useTimer.ts`: Core business logic.
-- `src-tauri/tauri.conf.json`: App configuration.
-- `src-tauri/src/lib.rs`: Rust backend logic.
-- `src/App.vue`: Main layout and component composition.
+### Timer State Modification
+1. **Edit logic first**: `src/composables/useTimer.ts` (single source of truth)
+2. **Reactive updates**: Components auto-reflect state changes
+3. **Duration updates**: Use `updateDurations()` method (see `App.vue` watch example)
+
+### Settings Persistence
+- **Automatic**: Any change to `settings` object triggers `localStorage` save
+- **Schema**: Update `AppSettings` interface in `useSettings.ts`
+- **Reset**: Call `resetToDefault()` to revert
+
+### Audio/Notification Patterns
+See `App.vue` callbacks:
+```ts
+onWorkEnd: async () => {
+  // 1. Force window top + focus
+  await getCurrentWindow().setAlwaysOnTop(true);
+  // 2. Play audio (files in public/)
+  const audio = new Audio("/notification-piano.mp3");
+  audio.play();
+  // 3. Request permission + send notification
+  if (await isPermissionGranted()) {
+    sendNotification({ title: "...", body: "..." });
+  }
+}
+```
+
+### Component Structure
+- **Props-down, Events-up**: No direct state mutation in child components
+- **Teleport for overlays**: `BreakOverlay.vue` uses `<teleport to="body">` for z-index isolation
+- **Scoped styles**: All components use `<style scoped>`
+
+## Key Files & Their Roles
+- `src/composables/useTimer.ts` - Core timer FSM + drift-free interval logic
+- `src/composables/useSettings.ts` - Reactive config with auto-persistence
+- `src/App.vue` - Lifecycle orchestrator (tray listeners, window events, audio/notification)
+- `src-tauri/src/lib.rs` - Tauri setup (plugins, commands, tray, menu)
+- `src-tauri/tauri.conf.json` - App metadata, build hooks, window config
+- `src-tauri/capabilities/default.json` - Security permissions manifest
+- `vite.config.ts` - Fixed port (1420) + dev server config for Tauri

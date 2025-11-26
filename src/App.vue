@@ -9,11 +9,15 @@ import {
 import TimerPanel from "./components/TimerPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
+import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
 import { useTimer } from "./composables/useTimer";
 import { useSettings } from "./composables/useSettings";
-import { watch } from "vue";
+import { watch, onMounted } from "vue";
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 
 const showSettings = ref(false);
+const showCloseConfirm = ref(false);
 const { settings } = useSettings();
 
 const timer = useTimer({
@@ -105,6 +109,105 @@ function handleReset() {
   );
   timer.reset();
 }
+
+async function handleCloseConfirm(minimize: boolean, remember: boolean) {
+  console.log("[CloseConfirm] minimize:", minimize, "remember:", remember);
+  showCloseConfirm.value = false;
+  if (remember) {
+    settings.closeBehavior = minimize ? "minimize" : "quit";
+    console.log("[CloseConfirm] Saved closeBehavior:", settings.closeBehavior);
+  }
+
+  if (minimize) {
+    console.log("[CloseConfirm] Hiding window...");
+    try {
+      await getCurrentWindow().hide();
+      console.log("[CloseConfirm] Window hidden successfully");
+    } catch (e) {
+      console.error("[CloseConfirm] Failed to hide window:", e);
+    }
+  } else {
+    console.log("[CloseConfirm] Exiting app...");
+    try {
+      await invoke("app_exit");
+      console.log("[CloseConfirm] App exit called successfully");
+    } catch (e) {
+      console.error("[CloseConfirm] Failed to exit app:", e);
+    }
+  }
+}
+
+onMounted(async () => {
+  const appWindow = getCurrentWindow();
+
+  // 监听托盘菜单事件
+  await listen("tray-start", () => {
+    console.log("[Tray] Start event received");
+    timer.start();
+  });
+  await listen("tray-pause", () => {
+    console.log("[Tray] Pause event received");
+    timer.pause();
+  });
+  await listen("tray-reset", () => {
+    console.log("[Tray] Reset event received");
+    handleReset();
+  });
+  await listen("tray-settings", async () => {
+    console.log("[Tray] Settings event received");
+    await appWindow.show();
+    await appWindow.setFocus();
+    showSettings.value = true;
+  });
+
+  // 处理窗口关闭请求
+  await appWindow.onCloseRequested(async (event) => {
+    console.log("[CloseRequested] Triggered, behavior:", settings.closeBehavior);
+    event.preventDefault(); // 始终阻止默认行为
+    
+    const behavior = settings.closeBehavior;
+    if (behavior === "quit") {
+      console.log("[CloseRequested] Exiting app...");
+      try {
+        await invoke("app_exit");
+        console.log("[CloseRequested] App exit successful");
+      } catch (e) {
+        console.error("[CloseRequested] Failed to exit:", e);
+      }
+      return;
+    }
+    if (behavior === "minimize") {
+      console.log("[CloseRequested] Hiding window...");
+      try {
+        await appWindow.hide();
+        console.log("[CloseRequested] Window hidden successfully");
+      } catch (e) {
+        console.error("[CloseRequested] Failed to hide window:", e);
+      }
+      return;
+    }
+
+    // behavior === 'ask'
+    console.log("[CloseRequested] Showing confirm dialog");
+    showCloseConfirm.value = true;
+  });
+
+  // 同步托盘图标状态
+  watch(
+    () => [timer.mode.value, timer.isRunning.value],
+    () => {
+      let state = "idle";
+      if (timer.mode.value === "work") {
+        state = timer.isRunning.value ? "working" : "paused";
+      } else if (timer.mode.value === "break") {
+        state = "break";
+      }
+      console.log("[Tray] Updating icon state to:", state);
+      invoke("set_tray_icon", { state });
+    },
+    { immediate: true } // 立即执行一次，确保初始状态正确
+  );
+});
 </script>
 
 <template>
@@ -135,6 +238,10 @@ function handleReset() {
     />
 
     <SettingsDialog :visible="showSettings" @close="closeSettings" />
+    <CloseConfirmDialog
+      :visible="showCloseConfirm"
+      @confirm="handleCloseConfirm"
+    />
   </main>
 </template>
 

@@ -1,0 +1,22 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- 背景（柔和蓝偏绿） -->
+  <rect width="200" height="200" fill="#78D6C6"/>
+
+  <!-- 左横线 -->
+  <line x1="50" y1="100" x2="90" y2="100" 
+        stroke="#2E7168" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- 左竖线（短） -->
+  <line x1="90" y1="85" x2="90" y2="115" 
+        stroke="#2E7168" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- 右横线 -->
+  <line x1="110" y1="100" x2="150" y2="100" 
+        stroke="#2E7168" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- 右竖线（长） -->
+  <line x1="110" y1="65" x2="110" y2="135" 
+        stroke="#2E7168" stroke-width="4" stroke-linecap="round"/>
+
+</svg>
