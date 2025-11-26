@@ -7,6 +7,7 @@ export interface TimerRecord {
   endTime: number; // 时间戳
   duration: number; // 持续时长（毫秒）
   mode?: "work" | "break"; // 倒计时模式专用
+  name?: string; // 记录名称（可选）
 }
 
 const STORAGE_KEY = "lpe-reminder-history";

@@ -119,7 +119,10 @@ function handleClearAll() {
           <div class="record-indicator" :style="{ backgroundColor: getRecordColor(record) }"></div>
           <div class="record-content">
             <div class="record-header">
-              <span class="record-type">{{ getRecordTypeText(record) }}</span>
+              <div class="record-title">
+                <span class="record-type">{{ getRecordTypeText(record) }}</span>
+                <span v-if="record.name" class="record-name">{{ record.name }}</span>
+              </div>
               <span class="record-duration">{{ formatDuration(record.duration) }}</span>
             </div>
             <div class="record-time">{{ formatDateTime(record.endTime) }}</div>
@@ -271,18 +274,42 @@ function handleClearAll() {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 4px;
+  gap: 8px;
+}
+
+.record-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .record-type {
   font-size: 14px;
   font-weight: 500;
   color: #374151;
+  flex-shrink: 0;
+}
+
+.record-name {
+  font-size: 13px;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-name::before {
+  content: "·";
+  margin-right: 4px;
 }
 
 .record-duration {
   font-size: 14px;
   font-weight: 600;
   color: #111827;
+  flex-shrink: 0;
 }
 
 .record-time {

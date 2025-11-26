@@ -12,6 +12,8 @@ import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
 import HistoryPanel from "./components/HistoryPanel.vue";
+import StopwatchCompleteDialog from "./components/StopwatchCompleteDialog.vue";
+import StopwatchBreakOverlay from "./components/StopwatchBreakOverlay.vue";
 import { useTimer } from "./composables/useTimer";
 import { useStopwatch } from "./composables/useStopwatch";
 import { useSettings } from "./composables/useSettings";
@@ -29,6 +31,10 @@ const { addRecord } = useTimerHistory();
 
 // 选项卡状态
 const activeTab = ref<"timer" | "history">("timer");
+
+// 正计时相关状态
+const showStopwatchComplete = ref(false);
+const stopwatchWorkDuration = ref(0); // 保存工作时长用于对话框
 
 // 存储事件监听器的清理函数
 const unlistenFns = ref<UnlistenFn[]>([]);
@@ -128,22 +134,26 @@ const timer = useTimer({
 });
 
 // 正计时器
-const stopwatch = useStopwatch();
+const stopwatch = useStopwatch({
+  onBreakEnd: async () => {
+    // 休息结束提示
+    if (settings.enablerestSound) {
+      await safeExecute(async () => {
+        await playAudio("/notification-chime.mp3", 0.5);
+      }, "Play stopwatch break end sound");
+    }
+  },
+});
 
-// 监听正计时停止，保存记录
+// 监听正计时停止，显示完成对话框
 watch(
   () => stopwatch.elapsedMs.value,
   (newElapsed, oldElapsed) => {
-    // 当 elapsedMs 从非零变为零（即调用了 stop()），保存记录
-    if (oldElapsed > 0 && newElapsed === 0) {
-      const endTime = Date.now();
-      addRecord({
-        type: "stopwatch",
-        startTime: endTime - oldElapsed,
-        endTime: endTime,
-        duration: oldElapsed,
-      });
-      console.log("[Stopwatch] Record saved:", oldElapsed, "ms");
+    // 当 elapsedMs 从非零变为零且不是休息模式（即调用了 stop()），显示对话框
+    if (oldElapsed > 0 && newElapsed === 0 && stopwatch.mode.value === "work") {
+      stopwatchWorkDuration.value = oldElapsed;
+      showStopwatchComplete.value = true;
+      console.log("[Stopwatch] Work completed:", oldElapsed, "ms");
     }
   }
 );
@@ -184,6 +194,53 @@ function handleReset() {
     minutesSecondsToMs(settings.breakDurationMinutes, settings.breakDurationSeconds)
   );
   timer.reset();
+}
+
+// 处理正计时完成
+function handleStopwatchComplete(data: { name: string; takeBreak: boolean }) {
+  showStopwatchComplete.value = false;
+  
+  const endTime = Date.now();
+  const workDuration = stopwatchWorkDuration.value;
+  
+  // 保存工作记录
+  addRecord({
+    type: "stopwatch",
+    mode: "work",
+    name: data.name,
+    startTime: endTime - workDuration,
+    endTime: endTime,
+    duration: workDuration,
+  });
+  console.log("[Stopwatch] Work record saved:", data.name, workDuration, "ms");
+  
+  // 如果需要休息，开始休息倒计时
+  if (data.takeBreak) {
+    const breakDuration = minutesSecondsToMs(
+      settings.stopwatchBreakMinutes,
+      settings.stopwatchBreakSeconds
+    );
+    stopwatch.startBreak(breakDuration);
+    console.log("[Stopwatch] Break started:", breakDuration, "ms");
+  }
+}
+
+// 处理正计时休息结束
+function handleStopwatchBreakEnd() {
+  const endTime = Date.now();
+  const breakDuration = stopwatch.elapsedMs.value;
+  
+  // 保存休息记录
+  addRecord({
+    type: "stopwatch",
+    mode: "break",
+    startTime: endTime - breakDuration,
+    endTime: endTime,
+    duration: breakDuration,
+  });
+  console.log("[Stopwatch] Break record saved:", breakDuration, "ms");
+  
+  stopwatch.endBreak();
 }
 
 async function handleCloseConfirm(minimize: boolean, remember: boolean) {
@@ -288,6 +345,7 @@ onMounted(async () => {
       settings.timerMode,
       timer.mode.value, 
       timer.isRunning.value,
+      stopwatch.mode.value,
       stopwatch.isRunning.value,
       stopwatch.elapsedMs.value
     ],
@@ -301,7 +359,9 @@ onMounted(async () => {
         }
       } else {
         // 正计时模式
-        if (stopwatch.elapsedMs.value > 0 || stopwatch.isRunning.value) {
+        if (stopwatch.mode.value === "break") {
+          state = "break"; // 休息中
+        } else if (stopwatch.elapsedMs.value > 0 || stopwatch.isRunning.value) {
           state = stopwatch.isRunning.value ? "working" : "paused";
         }
       }
@@ -378,6 +438,7 @@ onMounted(async () => {
         });
       } else {
         await appWindow.emit("timer-state-sync", {
+          mode: stopwatch.mode.value, // work 或 break
           elapsedMs: stopwatch.elapsedMs.value,
           isRunning: stopwatch.isRunning.value,
           timerMode: "stopwatch",
@@ -393,6 +454,7 @@ onMounted(async () => {
       timer.mode.value, 
       timer.remainingMs.value, 
       timer.isRunning.value,
+      stopwatch.mode.value,
       stopwatch.elapsedMs.value,
       stopwatch.isRunning.value
     ],
@@ -526,11 +588,25 @@ onBeforeUnmount(() => {
       @skip="timer.skipBreak()"
     />
 
+    <StopwatchBreakOverlay
+      :visible="stopwatch.mode.value === 'break'"
+      :elapsed-ms="stopwatch.elapsedMs.value"
+      :target-ms="stopwatch.breakTargetMs.value"
+      @end="handleStopwatchBreakEnd"
+      @skip="stopwatch.skipBreak()"
+    />
+
     <SettingsDialog :visible="showSettings" @close="closeSettings" />
     <CloseConfirmDialog
       :visible="showCloseConfirm"
       @confirm="handleCloseConfirm"
       @cancel="showCloseConfirm = false"
+    />
+    <StopwatchCompleteDialog
+      :visible="showStopwatchComplete"
+      :elapsed-ms="stopwatchWorkDuration"
+      @confirm="handleStopwatchComplete"
+      @cancel="showStopwatchComplete = false"
     />
   </main>
 </template>

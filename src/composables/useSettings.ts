@@ -6,6 +6,8 @@ export interface AppSettings {
   workDurationSeconds: number;
   breakDurationMinutes: number;
   breakDurationSeconds: number;
+  stopwatchBreakMinutes: number; // 正计时休息时长（分钟）
+  stopwatchBreakSeconds: number; // 正计时休息时长（秒）
   enableworkSound: boolean;
   enablerestSound: boolean;
   enableNotification: boolean;
@@ -25,6 +27,8 @@ const defaultSettings: AppSettings = {
   workDurationSeconds: 0,
   breakDurationMinutes: 5,
   breakDurationSeconds: 0,
+  stopwatchBreakMinutes: 5,
+  stopwatchBreakSeconds: 0,
   enableworkSound: true,
   enablerestSound: true,
   enableNotification: true,

@@ -51,6 +51,7 @@ const displayTime = computed(() => {
 const stateColor = computed(() => {
   if (timerMode.value === "stopwatch") {
     // 正计时模式
+    if (mode.value === "break") return "#22c55e"; // 绿色 - 休息中
     if (elapsedMs.value > 0 || isRunning.value) {
       return isRunning.value ? "#10b981" : "#94a3b8"; // 绿色 - 计时中 / 灰色 - 暂停
     }
@@ -68,6 +69,7 @@ const stateColor = computed(() => {
 const stateText = computed(() => {
   if (timerMode.value === "stopwatch") {
     // 正计时模式
+    if (mode.value === "break") return "休息中";
     if (elapsedMs.value === 0 && !isRunning.value) return "空闲";
     return isRunning.value ? "计时中" : "已暂停";
   }

@@ -103,6 +103,30 @@ function handleResetLocal() {
             </label>
           </div>
 
+          <div v-if="localSettings.timerMode === 'stopwatch'" class="form-group">
+            <label>
+              <span>正计时休息时长</span>
+              <div class="time-inputs">
+                <input
+                  type="number"
+                  v-model.number="localSettings.stopwatchBreakMinutes"
+                  min="0"
+                  max="60"
+                  placeholder="分"
+                />
+                <span class="unit">分</span>
+                <input
+                  type="number"
+                  v-model.number="localSettings.stopwatchBreakSeconds"
+                  min="0"
+                  max="59"
+                  placeholder="秒"
+                />
+                <span class="unit">秒</span>
+              </div>
+            </label>
+          </div>
+
           <div class="form-group checkbox-group">
             <label>
               <input type="checkbox" v-model="localSettings.enableworkSound" />
