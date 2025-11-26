@@ -140,6 +140,18 @@ fn show_tray_menu_at_cursor(app: tauri::AppHandle) -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+fn resize_floating_window(app: tauri::AppHandle, width: f64, height: f64) -> Result<(), String> {
+    if let Some(float_window) = app.get_webview_window("float") {
+        use tauri::Size;
+        let size = Size::Logical(tauri::LogicalSize { width, height });
+        float_window.set_size(size).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("Float window not found".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -207,7 +219,8 @@ pub fn run() {
             update_tray_menu, 
             app_exit,
             toggle_floating_window,
-            show_tray_menu_at_cursor
+            show_tray_menu_at_cursor,
+            resize_floating_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

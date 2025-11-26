@@ -240,6 +240,22 @@ onMounted(async () => {
   );
   stopWatchers.value.push(stopFloatingWindowWatch);
 
+  // 监听悬浮窗大小变化，动态调整窗口尺寸
+  const stopFloatingWindowSizeWatch = watch(
+    () => [settings.floatingWindowWidth, settings.floatingWindowHeight],
+    ([width, height]) => {
+      if (settings.enableFloatingWindow) {
+        console.log("[FloatingWindow] Resize to:", width, "x", height);
+        safeInvoke("resize_floating_window", { 
+          width: width as number, 
+          height: height as number 
+        });
+      }
+    },
+    { immediate: true }
+  );
+  stopWatchers.value.push(stopFloatingWindowSizeWatch);
+
   // 定期同步计时器状态到悬浮窗
   const syncFloatingWindowState = async () => {
     if (!settings.enableFloatingWindow) return;
