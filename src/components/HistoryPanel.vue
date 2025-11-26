@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useTimerHistory } from "../composables/useTimerHistory";
-import type { TimerRecord } from "../composables/useTimerHistory";
+import { useTimerHistory } from "../composables/useTimerHistoryDB";
+import type { TimerRecord } from "../composables/useTimerHistoryDB";
 
 const { records, deleteRecord, clearRecords, getTodayRecords, getWeekRecords, getTotalDuration } = useTimerHistory();
 
@@ -72,9 +72,9 @@ const weekWorkTotal = computed(() => getTotalDuration(weekWorkRecords.value));
 
 // 确认清空
 function handleClearAll() {
-  if (records.length === 0) return;
+  if (records.value.length === 0) return;
   
-  if (confirm(`确定要清空所有 ${records.length} 条历史记录吗？此操作不可恢复。`)) {
+  if (confirm(`确定要清空所有 ${records.value.length} 条历史记录吗？此操作不可恢复。`)) {
     clearRecords();
   }
 }

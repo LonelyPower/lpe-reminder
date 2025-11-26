@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, reactive, watch } from "vue";
-import { useSettings } from "../composables/useSettings";
+import { reactive, watch } from "vue";
+import { useSettings } from "../composables/useSettingsDB";
+import UserInfoSection from "./UserInfoSection.vue";
 
 interface Props {
   visible: boolean;
@@ -45,6 +46,9 @@ function handleResetLocal() {
           <h2>设置</h2>
         </header>
         <section class="dialog-body">
+          <!-- 用户信息区域 -->
+          <UserInfoSection />
+          
           <div class="form-group">
             <label>
               <span>计时器模式</span>

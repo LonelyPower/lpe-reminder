@@ -15,13 +15,14 @@ import HistoryPanel from "./components/HistoryPanel.vue";
 import StopwatchCompleteDialog from "./components/StopwatchCompleteDialog.vue";
 import { useTimer } from "./composables/useTimer";
 import { useStopwatch } from "./composables/useStopwatch";
-import { useSettings } from "./composables/useSettings";
-import { useTimerHistory } from "./composables/useTimerHistory";
+import { useSettings } from "./composables/useSettingsDB";
+import { useTimerHistory } from "./composables/useTimerHistoryDB";
 import { watch, onMounted, onBeforeUnmount } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 import { playAudio, preloadAudio } from "./utils/audioPlayer";
+import { initDatabase, migrateFromLocalStorage } from "./utils/database";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
@@ -64,6 +65,7 @@ const timer = useTimer({
       endTime: endTime,
       duration: workDuration,
     });
+    console.log("[Countdown] Work record saved:", workDuration, "ms");
 
     // 1. 显示、置顶并获取焦点
     const win = getCurrentWindow();
@@ -75,14 +77,6 @@ const timer = useTimer({
       // 最后获取焦点
       await win.setFocus();
     }, "Show and focus window on work end");
-
-    // 2. 播放提示音
-    if (settings.enableworkSound) {
-      await safeExecute(async () => {
-        await playAudio("/notification-piano.mp3", 0.5);
-      }, "Play work end sound");
-    }
-
     // 3. 发送系统通知
     if (settings.enableNotification) {
       await safeExecute(async () => {
@@ -101,10 +95,29 @@ const timer = useTimer({
         }
       }, "Send work end notification");
     }
+    // 2. 播放提示音
+    if (settings.enableworkSound) {
+      await safeExecute(async () => {
+        await playAudio("/notification-piano.mp3", 0.5);
+      }, "Play work end sound");
+    }
+
+
   },
   onBreakEnd: async () => {
-    // 仅在首次到达目标时间时触发（播放音乐）
-    // 记录保存移至 handleCountdownBreakEnd
+    // 0. 保存休息记录（使用实际休息时长）
+    const endTime = Date.now();
+    const actualBreakDuration = timer.breakElapsedMs.value;
+    addRecord({
+      type: "countdown",
+      mode: "break",
+      startTime: endTime - actualBreakDuration,
+      endTime: endTime,
+      duration: actualBreakDuration,
+    });
+    console.log("[Countdown] Break record auto-saved:", actualBreakDuration, "ms");
+
+    // 1. 播放提示音
     if (settings.enablerestSound) {
       await safeExecute(async () => {
         await playAudio("/notification-chime.mp3", 0.5);
@@ -203,29 +216,17 @@ function handleStopwatchComplete(data: { name: string; takeBreak: boolean }) {
   }
 }
 
-// 处理倒计时休息结束
+// 处理倒计时休息结束（用户手动点击按钮）
 async function handleCountdownBreakEnd() {
-  const endTime = Date.now();
-  const actualBreakDuration = timer.breakElapsedMs.value; // 使用实际休息时长
-  
-  // 保存休息记录
-  addRecord({
-    type: "countdown",
-    mode: "break",
-    startTime: endTime - actualBreakDuration,
-    endTime: endTime,
-    duration: actualBreakDuration,
-  });
-  console.log("[Countdown] Break record saved:", actualBreakDuration, "ms");
-  
   // 取消窗口置顶
   const win = getCurrentWindow();
   await safeExecute(async () => {
     await win.setAlwaysOnTop(false);
   }, "Cancel window always on top");
   
-  // 结束休息
+  // 结束休息（休息记录已在 onBreakEnd 中自动保存）
   timer.skipBreak();
+  console.log("[Countdown] Break ended manually by user");
 }
 
 // 处理正计时休息结束
@@ -270,6 +271,22 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 
 onMounted(async () => {
   const appWindow = getCurrentWindow();
+  
+  // 初始化数据库并迁移数据
+  try {
+    await initDatabase();
+    console.log("✓ Database initialized");
+    
+    // 检查是否需要从 localStorage 迁移数据
+    const hasOldData = localStorage.getItem("lpe-reminder-settings") || 
+                       localStorage.getItem("lpe-reminder-history");
+    if (hasOldData) {
+      console.log("Found old localStorage data, starting migration...");
+      await migrateFromLocalStorage();
+    }
+  } catch (error) {
+    console.error("Database initialization failed:", error);
+  }
   
   // 预加载音频文件
   preloadAudio(["/notification-piano.mp3", "/notification-chime.mp3"]);

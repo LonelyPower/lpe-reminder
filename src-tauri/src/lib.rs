@@ -1,8 +1,43 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, image::Image,
+    Emitter, Manager, image::Image, State,
 };
+use std::sync::Mutex;
+use std::collections::HashMap;
+
+mod db;
+use db::{Database, TimerRecord};
+
+// Icon cache wrapper - 存储 RGBA 原始数据
+pub struct IconCache {
+    icons: HashMap<String, (Vec<u8>, u32, u32)>, // (rgba_data, width, height)
+}
+
+impl IconCache {
+    fn new() -> Self {
+        IconCache {
+            icons: HashMap::new(),
+        }
+    }
+    
+    fn get_icon<'a>(&'a self, key: &str) -> Option<Image<'a>> {
+        self.icons.get(key).map(|(data, width, height)| {
+            Image::new(data.as_slice(), *width, *height)
+        })
+    }
+    
+    fn insert(&mut self, key: String, data: Vec<u8>, width: u32, height: u32) {
+        self.icons.insert(key, (data, width, height));
+    }
+}
+
+// Database state wrapper
+pub struct AppState {
+    pub db: Mutex<Database>,
+    pub current_user_id: Mutex<Option<i64>>,
+    pub icon_cache: Mutex<IconCache>,
+}
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -10,8 +45,100 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+// ==================== Database Commands ====================
+
 #[tauri::command]
-fn set_tray_icon(app: tauri::AppHandle, state: &str) {
+fn db_init_user(device_id: String, state: State<AppState>) -> Result<db::User, String> {
+    let db = state.db.lock().unwrap();
+    let user = db.get_or_create_user(&device_id).map_err(|e| e.to_string())?;
+    
+    // 缓存当前用户 ID
+    let mut current_user = state.current_user_id.lock().unwrap();
+    *current_user = Some(user.id);
+    
+    Ok(user)
+}
+
+#[tauri::command]
+fn db_update_phone(phone: Option<String>, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.update_user_phone(user_id, phone).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_get_user(state: State<AppState>) -> Result<db::User, String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.get_user_by_id(user_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_get_settings(state: State<AppState>) -> Result<Vec<db::Setting>, String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.get_settings(user_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_setting(key: String, value: String, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.save_setting(user_id, &key, &value).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_settings_batch(settings: Vec<(String, String)>, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.save_settings_batch(user_id, settings).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_get_timer_records(limit: i64, state: State<AppState>) -> Result<Vec<TimerRecord>, String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.get_timer_records(user_id, limit).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_add_timer_record(record: TimerRecord, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.add_timer_record(&record).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_timer_record(record_id: String, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.delete_timer_record(user_id, &record_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_clear_timer_records(state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.clear_timer_records(user_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_tray_icon(app: tauri::AppHandle, state: &str, app_state: State<AppState>) {
     if let Some(tray) = app.tray_by_id("tray") {
         // 更新提示文本
         let tooltip = match state {
@@ -22,79 +149,26 @@ fn set_tray_icon(app: tauri::AppHandle, state: &str) {
         };
         let _ = tray.set_tooltip(Some(tooltip));
         
-        // 根据状态切换图标
-        let icon_filename = match state {
-            "working" | "break" => "power-tray-busy.png",
-            "paused" => "power-tray-pause.png",
-            _ => "power-tray-idle.png",
+        // 根据状态选择图标键
+        let icon_key = match state {
+            "working" | "break" => "busy",
+            "paused" => "pause",
+            _ => "idle",
         };
         
-        // 构建候选路径列表（按优先级排序）
-        let mut possible_paths = Vec::new();
-        
-        // 1. 开发模式：项目根目录/src-tauri/icons/
-        if let Ok(current_dir) = std::env::current_dir() {
-            possible_paths.push(current_dir.join("src-tauri").join("icons").join(icon_filename));
-        }
-        
-        // 2. 相对于可执行文件的路径（运行时）
-        if let Ok(exe_dir) = std::env::current_exe() {
-            if let Some(parent) = exe_dir.parent() {
-                possible_paths.push(parent.join("icons").join(icon_filename));
-                // Windows: 尝试上级目录
-                if let Some(grandparent) = parent.parent() {
-                    possible_paths.push(grandparent.join("icons").join(icon_filename));
+        // 从缓存中获取图标
+        let cache = app_state.icon_cache.lock().unwrap();
+        if let Some(icon) = cache.get_icon(icon_key) {
+            match tray.set_icon(Some(icon)) {
+                Ok(_) => {
+                    println!("✓ Tray icon updated to '{}' (from cache)", state);
+                }
+                Err(e) => {
+                    eprintln!("✗ Failed to set tray icon: {}", e);
                 }
             }
-        }
-        
-        // 3. Tauri 资源路径（生产模式）
-        if let Ok(resource_path) = app.path().resolve(
-            format!("icons/{}", icon_filename), 
-            tauri::path::BaseDirectory::Resource
-        ) {
-            possible_paths.push(resource_path);
-        }
-        
-        // 4. 相对于当前工作目录
-        possible_paths.push(std::path::PathBuf::from(format!("icons/{}", icon_filename)));
-        
-        // 遍历所有路径，找到第一个存在的文件
-        let mut icon_loaded = false;
-        for icon_path in &possible_paths {
-            println!("Trying icon path: {:?}", icon_path);
-            
-            if icon_path.exists() {
-                match image::open(icon_path) {
-                    Ok(img) => {
-                        let rgba = img.to_rgba8();
-                        let (width, height) = rgba.dimensions();
-                        let raw_data = rgba.into_raw();
-                        let icon = Image::new(&raw_data, width, height);
-                        
-                        match tray.set_icon(Some(icon)) {
-                            Ok(_) => {
-                                println!("✓ Tray icon updated to '{}' from {:?}", state, icon_path);
-                                icon_loaded = true;
-                                break;
-                            }
-                            Err(e) => {
-                                eprintln!("✗ Failed to set tray icon: {}", e);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("✗ Failed to load image from {:?}: {}", icon_path, e);
-                    }
-                }
-            }
-        }
-        
-        if !icon_loaded {
-            eprintln!("✗ Could not find icon file '{}' in any of the following paths:", icon_filename);
-            for path in &possible_paths {
-                eprintln!("  - {:?} (exists: {})", path, path.exists());
-            }
+        } else {
+            eprintln!("✗ Icon '{}' not found in cache", icon_key);
         }
     }
 }
@@ -158,6 +232,96 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            // 初始化数据库
+            let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");
+            std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
+            
+            let db_path = app_data_dir.join("lpe_reminder.db");
+            println!("Database path: {:?}", db_path);
+            
+            let database = Database::new(db_path).expect("Failed to initialize database");
+            
+            // 预加载托盘图标到缓存
+            let mut icon_cache = IconCache::new();
+            let icon_files = vec![
+                ("idle", "power-tray-idle.png"),
+                ("busy", "power-tray-busy.png"),
+                ("pause", "power-tray-pause.png"),
+            ];
+            
+            for (key, filename) in icon_files {
+                // 构建候选路径
+                let mut possible_paths = Vec::new();
+                
+                // 1. 当前工作目录/icons (Cargo 运行时 cwd 是 src-tauri/)
+                if let Ok(current_dir) = std::env::current_dir() {
+                    possible_paths.push(current_dir.join("icons").join(filename));
+                    // 也尝试项目根目录 (如果 cwd 是项目根)
+                    possible_paths.push(current_dir.join("src-tauri").join("icons").join(filename));
+                }
+                
+                // 2. 可执行文件目录的相对路径
+                if let Ok(exe_dir) = std::env::current_exe() {
+                    if let Some(exe_parent) = exe_dir.parent() {
+                        // target/debug/icons
+                        possible_paths.push(exe_parent.join("icons").join(filename));
+                        
+                        // target/debug -> target -> src-tauri/icons
+                        if let Some(target_dir) = exe_parent.parent() {
+                            if let Some(src_tauri_dir) = target_dir.parent() {
+                                possible_paths.push(src_tauri_dir.join("icons").join(filename));
+                            }
+                        }
+                    }
+                }
+                
+                // 3. Tauri 资源路径（生产模式）
+                if let Ok(resource_path) = app.path().resolve(
+                    format!("icons/{}", filename), 
+                    tauri::path::BaseDirectory::Resource
+                ) {
+                    possible_paths.push(resource_path);
+                }
+                
+                // 尝试加载图标
+                let mut loaded = false;
+                for icon_path in &possible_paths {
+                    if icon_path.exists() {
+                        match image::open(icon_path) {
+                            Ok(img) => {
+                                let rgba = img.to_rgba8();
+                                let (width, height) = rgba.dimensions();
+                                let raw_data = rgba.into_raw();
+                                icon_cache.insert(key.to_string(), raw_data, width, height);
+                                println!("✓ Preloaded icon '{}' from {:?}", key, icon_path);
+                                loaded = true;
+                                break;
+                            }
+                            Err(e) => {
+                                eprintln!("  ✗ Failed to load image from {:?}: {}", icon_path, e);
+                            }
+                        }
+                    }
+                }
+                
+                if !loaded {
+                    eprintln!("✗ Failed to preload icon '{}'. Tried {} paths:", key, possible_paths.len());
+                    for (i, path) in possible_paths.iter().enumerate() {
+                        eprintln!("  {}. {:?} (exists: {})", i + 1, path, path.exists());
+                    }
+                }
+            }
+            
+            // 设置全局状态
+            app.manage(AppState {
+                db: Mutex::new(database),
+                current_user_id: Mutex::new(None),
+                icon_cache: Mutex::new(icon_cache),
+            });
+            
+            println!("✓ Database and icon cache initialized successfully");
+            
+
             // 创建托盘菜单项
             let start_i = MenuItem::with_id(app, "start", "开始工作", true, None::<&str>)?;
             let pause_i = MenuItem::with_id(app, "pause", "暂停", true, None::<&str>)?;
@@ -220,7 +384,17 @@ pub fn run() {
             app_exit,
             toggle_floating_window,
             show_tray_menu_at_cursor,
-            resize_floating_window
+            resize_floating_window,
+            db_init_user,
+            db_update_phone,
+            db_get_user,
+            db_get_settings,
+            db_save_setting,
+            db_save_settings_batch,
+            db_get_timer_records,
+            db_add_timer_record,
+            db_delete_timer_record,
+            db_clear_timer_records
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
