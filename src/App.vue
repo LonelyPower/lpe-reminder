@@ -453,6 +453,7 @@ onBeforeUnmount(() => {
     <CloseConfirmDialog
       :visible="showCloseConfirm"
       @confirm="handleCloseConfirm"
+      @cancel="showCloseConfirm = false"
     />
   </main>
 </template>
