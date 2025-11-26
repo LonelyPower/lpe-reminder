@@ -16,11 +16,7 @@ const showContextMenu = ref(false);
 const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 
-// 拖拽功能相关状态
-const dragStartX = ref(0);
-const dragStartY = ref(0);
-const dragStartWindowX = ref(0);
-const dragStartWindowY = ref(0);
+// 拖拽功能相关状态（已移除，改用区域判断）
 
 // 计算显示的时间
 const displayTime = computed(() => formatTime(remainingMs.value));
@@ -103,20 +99,14 @@ async function handleMenuSettings() {
   }
 }
 
-// 开始拖拽窗口
-async function handleMouseDown(e: MouseEvent) {
+// 拖拽手柄区域的鼠标按下事件
+async function handleDragHandleMouseDown(e: MouseEvent) {
   // 只处理左键
   if (e.button !== 0) return;
   
+  e.stopPropagation(); // 阻止事件冒泡
+  
   const win = getCurrentWindow();
-  
-  // 记录拖拽开始时的鼠标位置和窗口位置
-  dragStartX.value = e.screenX;
-  dragStartY.value = e.screenY;
-  
-  const startPosition = await win.outerPosition();
-  dragStartWindowX.value = startPosition.x;
-  dragStartWindowY.value = startPosition.y;
   
   // 使用 Tauri 的内置拖拽功能
   try {
@@ -124,16 +114,11 @@ async function handleMouseDown(e: MouseEvent) {
   } catch (error) {
     // 拖拽结束或被取消
   }
-  
-  // 拖拽结束后，检查窗口位置是否真的改变了
-  const endPosition = await win.outerPosition();
-  const windowMoved = Math.abs(endPosition.x - dragStartWindowX.value) > 3 || 
-                      Math.abs(endPosition.y - dragStartWindowY.value) > 3;
-  
-  // 只有窗口没有移动时，才视为点击
-  if (!windowMoved) {
-    handleClick();
-  }
+}
+
+// 时间显示区域的点击事件
+function handleTimeClick() {
+  handleClick();
 }
 
 onMounted(async () => {
@@ -159,11 +144,36 @@ onMounted(async () => {
   <div
     class="floating-window"
     :style="{ borderColor: stateColor }"
-    @mousedown="handleMouseDown"
     @contextmenu="handleContextMenu"
   >
-    <div class="time-display" :style="{ color: stateColor }">
+    <div 
+      class="time-display" 
+      :style="{ color: stateColor }"
+      @click="handleTimeClick"
+    >
       {{ displayTime }}
+    </div>
+    <div 
+      class="drag-handle"
+      @mousedown="handleDragHandleMouseDown"
+      title="拖动窗口"
+    >
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="16" 
+        height="16" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        stroke-width="2"
+      >
+        <circle cx="9" cy="6" r="1" />
+        <circle cx="9" cy="12" r="1" />
+        <circle cx="9" cy="18" r="1" />
+        <circle cx="15" cy="6" r="1" />
+        <circle cx="15" cy="12" r="1" />
+        <circle cx="15" cy="18" r="1" />
+      </svg>
     </div>
   </div>
 
@@ -187,12 +197,13 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   border: 3px solid;
   border-radius: 12px;
-  cursor: move;
   user-select: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: border-color 0.3s ease;
@@ -204,9 +215,44 @@ onMounted(async () => {
 }
 
 .time-display {
+  flex: 1;
   font-size: 18px;
   font-weight: bold;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
   transition: color 0.3s ease;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.time-display:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.time-display:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 100%;
+  cursor: move;
+  color: #9ca3af;
+  transition: color 0.2s;
+  border-radius: 4px;
+}
+
+.drag-handle:hover {
+  color: #6b7280;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.drag-handle:active {
+  color: #4b5563;
+  background: rgba(0, 0, 0, 0.1);
 }
 </style>
