@@ -110,16 +110,30 @@ function handleReset() {
   timer.reset();
 }
 
-function handleCloseConfirm(minimize: boolean, remember: boolean) {
+async function handleCloseConfirm(minimize: boolean, remember: boolean) {
+  console.log("[CloseConfirm] minimize:", minimize, "remember:", remember);
   showCloseConfirm.value = false;
   if (remember) {
     settings.closeBehavior = minimize ? "minimize" : "quit";
+    console.log("[CloseConfirm] Saved closeBehavior:", settings.closeBehavior);
   }
 
   if (minimize) {
-    getCurrentWindow().hide();
+    console.log("[CloseConfirm] Hiding window...");
+    try {
+      await getCurrentWindow().hide();
+      console.log("[CloseConfirm] Window hidden successfully");
+    } catch (e) {
+      console.error("[CloseConfirm] Failed to hide window:", e);
+    }
   } else {
-    invoke("app_exit");
+    console.log("[CloseConfirm] Exiting app...");
+    try {
+      await invoke("app_exit");
+      console.log("[CloseConfirm] App exit called successfully");
+    } catch (e) {
+      console.error("[CloseConfirm] Failed to exit app:", e);
+    }
   }
 }
 
@@ -133,18 +147,33 @@ onMounted(async () => {
 
   // 处理窗口关闭请求
   await appWindow.onCloseRequested(async (event) => {
+    console.log("[CloseRequested] Triggered, behavior:", settings.closeBehavior);
+    event.preventDefault(); // 始终阻止默认行为
+    
     const behavior = settings.closeBehavior;
     if (behavior === "quit") {
-      return; // 让窗口关闭
+      console.log("[CloseRequested] Exiting app...");
+      try {
+        await invoke("app_exit");
+        console.log("[CloseRequested] App exit successful");
+      } catch (e) {
+        console.error("[CloseRequested] Failed to exit:", e);
+      }
+      return;
     }
     if (behavior === "minimize") {
-      event.preventDefault();
-      await appWindow.hide();
+      console.log("[CloseRequested] Hiding window...");
+      try {
+        await appWindow.hide();
+        console.log("[CloseRequested] Window hidden successfully");
+      } catch (e) {
+        console.error("[CloseRequested] Failed to hide window:", e);
+      }
       return;
     }
 
     // behavior === 'ask'
-    event.preventDefault();
+    console.log("[CloseRequested] Showing confirm dialog");
     showCloseConfirm.value = true;
   });
 
