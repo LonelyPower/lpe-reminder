@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, Window } from "@tauri-apps/api/window";
 import {
   isPermissionGranted,
   requestPermission,
@@ -10,11 +10,10 @@ import TimerPanel from "./components/TimerPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
-import FloatingBall from "./components/FloatingBall.vue";
 import { useTimer } from "./composables/useTimer";
 import { useSettings } from "./composables/useSettings";
 import { watch, onMounted, onBeforeUnmount } from "vue";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { listen, emit, type UnlistenFn } from "@tauri-apps/api/event";
 import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 import { playAudio, preloadAudio } from "./utils/audioPlayer";
@@ -129,19 +128,6 @@ function handleReset() {
   timer.reset();
 }
 
-// 悬浮球控制
-function handleFloatingBallToggle() {
-  if (timer.isRunning.value) {
-    timer.pause();
-  } else {
-    timer.start();
-  }
-}
-
-function handleFloatingBallSettings() {
-  openSettings();
-}
-
 async function handleCloseConfirm(minimize: boolean, remember: boolean) {
   console.log("[CloseConfirm] minimize:", minimize, "remember:", remember);
   showCloseConfirm.value = false;
@@ -242,6 +228,87 @@ onMounted(async () => {
     { immediate: true } // 立即执行一次，确保初始状态正确
   );
   stopWatchers.value.push(stopTrayIconWatch);
+
+  // === 悬浮球窗口管理 ===
+  const floatingBallWindow = await Window.getByLabel("floating-ball");
+
+  // 监听 enableFloatingBall 设置变化
+  const stopFloatingBallWatch = watch(
+    () => settings.enableFloatingBall,
+    async (enabled) => {
+      if (enabled && floatingBallWindow) {
+        await safeExecute(async () => {
+          await floatingBallWindow!.show();
+          console.log("[FloatingBall] Window shown");
+        }, "Show floating ball window");
+      } else if (!enabled && floatingBallWindow) {
+        await safeExecute(async () => {
+          await floatingBallWindow!.hide();
+          console.log("[FloatingBall] Window hidden");
+        }, "Hide floating ball window");
+      }
+    },
+    { immediate: true }
+  );
+  stopWatchers.value.push(stopFloatingBallWatch);
+
+  // 实时同步计时器状态到悬浮球
+  const stopTimerUpdateWatch = watch(
+    () => [timer.mode.value, timer.isRunning.value, timer.remainingMs.value],
+    () => {
+      emit("timer-update", {
+        mode: timer.mode.value,
+        isRunning: timer.isRunning.value,
+        remainingMs: timer.remainingMs.value,
+      });
+    },
+    { immediate: true }
+  );
+  stopWatchers.value.push(stopTimerUpdateWatch);
+
+  // 监听悬浮球的操作事件
+  unlistenFns.value.push(
+    await listen("floating-ball-ready", () => {
+      console.log("[FloatingBall] Ready, sending initial state");
+      emit("timer-update", {
+        mode: timer.mode.value,
+        isRunning: timer.isRunning.value,
+        remainingMs: timer.remainingMs.value,
+      });
+    })
+  );
+  unlistenFns.value.push(
+    await listen("floating-ball-toggle", () => {
+      console.log("[FloatingBall] Toggle event received");
+      if (timer.isRunning.value) {
+        timer.pause();
+      } else {
+        timer.start();
+      }
+    })
+  );
+  unlistenFns.value.push(
+    await listen("floating-ball-reset", () => {
+      console.log("[FloatingBall] Reset event received");
+      handleReset();
+    })
+  );
+  unlistenFns.value.push(
+    await listen("floating-ball-skip-break", () => {
+      console.log("[FloatingBall] Skip break event received");
+      timer.skipBreak();
+    })
+  );
+  unlistenFns.value.push(
+    await listen("floating-ball-open-settings", async () => {
+      console.log("[FloatingBall] Open settings event received");
+      await safeExecute(async () => {
+        await appWindow.show();
+        await appWindow.setFocus();
+        showSettings.value = true;
+      }, "Show settings from floating ball");
+    })
+  );
 });
 
 // 组件卸载时清理所有监听器
@@ -303,18 +370,6 @@ onBeforeUnmount(() => {
     <CloseConfirmDialog
       :visible="showCloseConfirm"
       @confirm="handleCloseConfirm"
-    />
-    
-    <!-- 悬浮球 -->
-    <FloatingBall
-      v-if="settings.enableFloatingBall"
-      :mode="timer.mode.value"
-      :remaining-ms="timer.remainingMs.value"
-      :is-running="timer.isRunning.value"
-      @toggle="handleFloatingBallToggle"
-      @reset="handleReset"
-      @skip-break="timer.skipBreak()"
-      @settings="handleFloatingBallSettings"
     />
   </main>
 </template>
