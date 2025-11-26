@@ -133,19 +133,17 @@ onMounted(async () => {
   backdrop-filter: blur(8px);
   border-radius: 12px;
   user-select: none;
-  /* 使用inset阴影模拟边框效果，并添加外阴影 */
-  box-shadow:
-    inset 0 0 0 2px var(--border-color, #3b82f6),
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  /* 使用inset阴影模拟边框效果 */
+  box-shadow: inset 0 0 0 2px var(--border-color, #3b82f6);
   transition: box-shadow 0.3s ease;
   --border-color: #3b82f6;
+  /* 确保圆角外部完全透明，避免阴影残留 */
+  overflow: hidden;
 }
 
 .floating-window:hover {
   background: rgba(255, 255, 255, 1);
-  box-shadow:
-    inset 0 0 0 2px var(--border-color, #3b82f6),
-    0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 0 2px var(--border-color, #3b82f6);
 }
 
 .time-display {
