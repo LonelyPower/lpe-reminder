@@ -148,12 +148,15 @@ onMounted(async () => {
 
 .time-display {
   flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 18px;
   font-weight: bold;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
   transition: color 0.3s ease;
   cursor: pointer;
-  padding: 8px;
   border-radius: 6px;
   text-align: center;
 }
