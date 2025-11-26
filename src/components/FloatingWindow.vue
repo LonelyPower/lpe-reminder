@@ -4,17 +4,11 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { formatTime } from "../utils/timeUtils";
 import type { TimerMode } from "../composables/useTimer";
-import ContextMenu from "./ContextMenu.vue";
 
 // 接收主窗口同步的状态
 const mode = ref<TimerMode>("idle");
 const remainingMs = ref(0);
 const isRunning = ref(false);
-
-// 右键菜单状态
-const showContextMenu = ref(false);
-const contextMenuX = ref(0);
-const contextMenuY = ref(0);
 
 // 拖拽功能相关状态（已移除，改用区域判断）
 
@@ -51,51 +45,19 @@ async function handleClick() {
   }
 }
 
-// 右键显示自定义菜单
+// 右键菜单：创建一个新的独立窗口来显示菜单
 async function handleContextMenu(e: MouseEvent) {
   e.preventDefault();
   
-  contextMenuX.value = e.clientX;
-  contextMenuY.value = e.clientY;
-  showContextMenu.value = true;
-}
-
-// 菜单操作
-async function handleMenuStart() {
+  // 创建简单的原生菜单，通过主窗口显示
   const { getAllWindows } = await import("@tauri-apps/api/window");
   const windows = await getAllWindows();
   const mainWindow = windows.find((w) => w.label === "main");
+  
   if (mainWindow) {
-    await mainWindow.emit("float-start", {});
-  }
-}
-
-async function handleMenuPause() {
-  const { getAllWindows } = await import("@tauri-apps/api/window");
-  const windows = await getAllWindows();
-  const mainWindow = windows.find((w) => w.label === "main");
-  if (mainWindow) {
-    await mainWindow.emit("float-pause", {});
-  }
-}
-
-async function handleMenuReset() {
-  const { getAllWindows } = await import("@tauri-apps/api/window");
-  const windows = await getAllWindows();
-  const mainWindow = windows.find((w) => w.label === "main");
-  if (mainWindow) {
-    await mainWindow.emit("tray-reset", {});
-  }
-}
-
-async function handleMenuSettings() {
-  const { getAllWindows } = await import("@tauri-apps/api/window");
-  const windows = await getAllWindows();
-  const mainWindow = windows.find((w) => w.label === "main");
-  if (mainWindow) {
+    // 显示主窗口并打开设置（简化的右键操作）
     await mainWindow.show();
     await mainWindow.setFocus();
-    await mainWindow.emit("tray-settings", {});
   }
 }
 
@@ -176,19 +138,6 @@ onMounted(async () => {
       </svg>
     </div>
   </div>
-
-  <ContextMenu
-    :visible="showContextMenu"
-    :x="contextMenuX"
-    :y="contextMenuY"
-    :mode="mode"
-    :is-running="isRunning"
-    @start="handleMenuStart"
-    @pause="handleMenuPause"
-    @reset="handleMenuReset"
-    @settings="handleMenuSettings"
-    @close="showContextMenu = false"
-  />
 </template>
 
 <style scoped>
