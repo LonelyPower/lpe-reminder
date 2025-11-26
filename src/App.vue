@@ -140,10 +140,19 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 onMounted(async () => {
   const appWindow = getCurrentWindow();
 
-  // 监听托盘菜单事件（如果需要）
-  await listen("tray-start", () => timer.start());
-  await listen("tray-pause", () => timer.pause());
-  await listen("tray-reset", () => handleReset());
+  // 监听托盘菜单事件
+  await listen("tray-start", () => {
+    console.log("[Tray] Start event received");
+    timer.start();
+  });
+  await listen("tray-pause", () => {
+    console.log("[Tray] Pause event received");
+    timer.pause();
+  });
+  await listen("tray-reset", () => {
+    console.log("[Tray] Reset event received");
+    handleReset();
+  });
 
   // 处理窗口关闭请求
   await appWindow.onCloseRequested(async (event) => {
@@ -187,8 +196,10 @@ onMounted(async () => {
       } else if (timer.mode.value === "break") {
         state = "break";
       }
+      console.log("[Tray] Updating icon state to:", state);
       invoke("set_tray_icon", { state });
-    }
+    },
+    { immediate: true } // 立即执行一次，确保初始状态正确
   );
 });
 </script>
