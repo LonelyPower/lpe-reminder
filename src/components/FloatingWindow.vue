@@ -4,11 +4,35 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { formatTime } from "../utils/timeUtils";
 import type { TimerMode } from "../composables/useTimer";
+import { useSettings } from "../composables/useSettings";
+
+const { settings } = useSettings();
 
 // 接收主窗口同步的状态
 const mode = ref<TimerMode>("idle");
 const remainingMs = ref(0);
 const isRunning = ref(false);
+
+// 字体大小（响应式，从主窗口同步）
+const baseFontSize = ref(settings.floatingWindowFontSize);
+
+// 窗口尺寸（用于自适应字体）
+const windowWidth = ref(settings.floatingWindowWidth);
+const windowHeight = ref(settings.floatingWindowHeight);
+
+// 计算自适应字体大小（基于窗口高度）
+const fontSize = computed(() => {
+  // 基准：50px 高度对应 18px 字体
+  const baseHeight = 50;
+  const baseFontSizeValue = baseFontSize.value;
+  
+  // 根据窗口高度等比例缩放字体
+  const scaleFactor = windowHeight.value / baseHeight;
+  const adaptiveFontSize = Math.round(baseFontSizeValue * scaleFactor);
+  
+  // 限制字体大小范围（最小 12px，最大 48px）
+  return Math.max(12, Math.min(48, adaptiveFontSize));
+});
 
 // 拖拽功能相关状态（已移除，改用区域判断）
 
@@ -22,6 +46,15 @@ const stateColor = computed(() => {
     return isRunning.value ? "#f59e0b" : "#94a3b8"; // 橙色 - 工作中 / 灰色 - 已暂停
   }
   return "#3b82f6"; // 蓝色 - 空闲
+});
+
+// 状态文本
+const stateText = computed(() => {
+  if (mode.value === "break") return "休息中";
+  if (mode.value === "work") {
+    return isRunning.value ? "工作中" : "已暂停";
+  }
+  return "空闲";
 });
 
 // 左键单击：暂停/继续
@@ -98,13 +131,43 @@ onMounted(async () => {
       isRunning.value = event.payload.isRunning;
     }
   );
+
+  // 监听主窗口同步的字体大小
+  await listen<{ fontSize: number }>(
+    "float-font-size-sync",
+    (event) => {
+      baseFontSize.value = event.payload.fontSize;
+    }
+  );
+
+  // 监听窗口尺寸变化（用于自适应字体）
+  await listen<{ width: number; height: number }>(
+    "float-size-sync",
+    async (event) => {
+      windowWidth.value = event.payload.width;
+      windowHeight.value = event.payload.height;
+      
+      // 窗口尺寸变化时，同步自适应后的字体大小到主窗口
+      const newAdaptiveFontSize = fontSize.value;
+      if (newAdaptiveFontSize !== baseFontSize.value) {
+        const { getAllWindows } = await import("@tauri-apps/api/window");
+        const windows = await getAllWindows();
+        const mainWindow = windows.find((w) => w.label === "main");
+        
+        if (mainWindow) {
+          await mainWindow.emit("float-adaptive-font-size", { fontSize: newAdaptiveFontSize });
+        }
+      }
+    }
+  );
 });
 </script>
 
 <template>
   <div class="floating-window" :style="{ '--border-color': stateColor }" @contextmenu="handleContextMenu">
-    <div class="time-display" :style="{ color: stateColor }" @click="handleTimeClick">
-      {{ displayTime }}
+    <div class="time-display" :style="{ color: stateColor, fontSize: fontSize + 'px' }" @click="handleTimeClick">
+      <div class="time-text">{{ displayTime }}</div>
+      <div class="state-text">{{ stateText }}</div>
     </div>
     <div class="drag-handle" @mousedown="handleDragHandleMouseDown" title="拖动窗口">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -149,16 +212,38 @@ onMounted(async () => {
 .time-display {
   flex: 1;
   height: 100%;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  gap: 2px;
   font-weight: bold;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
   transition: color 0.3s ease;
   cursor: pointer;
   border-radius: 6px;
   text-align: center;
+  overflow: hidden;
+}
+
+.time-text {
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.state-text {
+  font-size: 0.5em;
+  opacity: 0.8;
+  font-weight: normal;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .time-display:hover {
@@ -174,6 +259,8 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   width: 24px;
+  min-width: 24px;
+  flex-shrink: 0;
   height: 100%;
   cursor: move;
   color: #9ca3af;

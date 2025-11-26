@@ -250,11 +250,35 @@ onMounted(async () => {
           width: width as number, 
           height: height as number 
         });
+        // 同步窗口尺寸到悬浮窗（用于自适应字体）
+        safeExecute(async () => {
+          await appWindow.emit("float-size-sync", { 
+            width: width as number, 
+            height: height as number 
+          });
+        }, "Sync window size to floating window");
       }
     },
     { immediate: true }
   );
   stopWatchers.value.push(stopFloatingWindowSizeWatch);
+
+  // 监听悬浮窗字体大小变化，同步到悬浮窗（用户手动修改时）
+  let isAdaptiveUpdate = false; // 标记是否为自适应更新
+  const stopFloatingWindowFontSizeWatch = watch(
+    () => settings.floatingWindowFontSize,
+    (fontSize) => {
+      if (settings.enableFloatingWindow && !isAdaptiveUpdate) {
+        console.log("[FloatingWindow] Font size changed to:", fontSize);
+        safeExecute(async () => {
+          await appWindow.emit("float-font-size-sync", { fontSize });
+        }, "Sync font size to floating window");
+      }
+      isAdaptiveUpdate = false; // 重置标记
+    },
+    { immediate: true }
+  );
+  stopWatchers.value.push(stopFloatingWindowFontSizeWatch);
 
   // 定期同步计时器状态到悬浮窗
   const syncFloatingWindowState = async () => {
@@ -289,6 +313,14 @@ onMounted(async () => {
     await listen("float-pause", () => {
       console.log("[Float] Pause event received");
       timer.pause();
+    })
+  );
+  // 监听悬浮窗自适应字体大小变化，同步到设置
+  unlistenFns.value.push(
+    await listen<{ fontSize: number }>("float-adaptive-font-size", (event) => {
+      console.log("[Float] Adaptive font size:", event.payload.fontSize);
+      isAdaptiveUpdate = true; // 标记为自适应更新，避免触发watch
+      settings.floatingWindowFontSize = event.payload.fontSize;
     })
   );
 

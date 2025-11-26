@@ -142,6 +142,22 @@ function handleResetLocal() {
             </label>
           </div>
 
+          <div v-if="localSettings.enableFloatingWindow" class="form-group">
+            <label>
+              <span>悬浮窗字体大小</span>
+              <div class="time-inputs">
+                <input
+                  type="number"
+                  v-model.number="localSettings.floatingWindowFontSize"
+                  min="12"
+                  max="48"
+                  placeholder="字体大小"
+                />
+                <span class="unit">像素</span>
+              </div>
+            </label>
+          </div>
+
           <div class="form-group">
             <label>
               <span>关闭窗口时</span>
