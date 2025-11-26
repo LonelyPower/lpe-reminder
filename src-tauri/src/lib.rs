@@ -29,48 +29,72 @@ fn set_tray_icon(app: tauri::AppHandle, state: &str) {
             _ => "power-tray-idle.png",
         };
         
-        // 尝试从多个可能的路径加载图标
-        let mut possible_paths = vec![
-            // 开发模式：src-tauri/icons/
-            Some(std::path::PathBuf::from(format!("src-tauri/icons/{}", icon_filename))),
-            // 相对于当前目录
-            Some(std::path::PathBuf::from(format!("icons/{}", icon_filename))),
-        ];
+        // 构建候选路径列表（按优先级排序）
+        let mut possible_paths = Vec::new();
         
-        // 添加 Tauri 资源路径
-        if let Ok(resource_path) = app.path().resolve(format!("icons/{}", icon_filename), tauri::path::BaseDirectory::Resource) {
-            possible_paths.push(Some(resource_path));
+        // 1. 开发模式：项目根目录/src-tauri/icons/
+        if let Ok(current_dir) = std::env::current_dir() {
+            possible_paths.push(current_dir.join("src-tauri").join("icons").join(icon_filename));
         }
         
+        // 2. 相对于可执行文件的路径（运行时）
+        if let Ok(exe_dir) = std::env::current_exe() {
+            if let Some(parent) = exe_dir.parent() {
+                possible_paths.push(parent.join("icons").join(icon_filename));
+                // Windows: 尝试上级目录
+                if let Some(grandparent) = parent.parent() {
+                    possible_paths.push(grandparent.join("icons").join(icon_filename));
+                }
+            }
+        }
+        
+        // 3. Tauri 资源路径（生产模式）
+        if let Ok(resource_path) = app.path().resolve(
+            format!("icons/{}", icon_filename), 
+            tauri::path::BaseDirectory::Resource
+        ) {
+            possible_paths.push(resource_path);
+        }
+        
+        // 4. 相对于当前工作目录
+        possible_paths.push(std::path::PathBuf::from(format!("icons/{}", icon_filename)));
+        
+        // 遍历所有路径，找到第一个存在的文件
         let mut icon_loaded = false;
-        for path_option in possible_paths {
-            if let Some(icon_path) = path_option {
-                if icon_path.exists() {
-                    match image::open(&icon_path) {
-                        Ok(img) => {
-                            let rgba = img.to_rgba8();
-                            let (width, height) = rgba.dimensions();
-                            let raw_data = rgba.into_raw();
-                            let icon = Image::new(&raw_data, width, height);
-                            
-                            if let Err(e) = tray.set_icon(Some(icon)) {
-                                eprintln!("Failed to set tray icon: {}", e);
-                            } else {
-                                println!("Tray icon updated to: {} from {:?}", state, icon_path);
+        for icon_path in &possible_paths {
+            println!("Trying icon path: {:?}", icon_path);
+            
+            if icon_path.exists() {
+                match image::open(icon_path) {
+                    Ok(img) => {
+                        let rgba = img.to_rgba8();
+                        let (width, height) = rgba.dimensions();
+                        let raw_data = rgba.into_raw();
+                        let icon = Image::new(&raw_data, width, height);
+                        
+                        match tray.set_icon(Some(icon)) {
+                            Ok(_) => {
+                                println!("✓ Tray icon updated to '{}' from {:?}", state, icon_path);
                                 icon_loaded = true;
                                 break;
                             }
+                            Err(e) => {
+                                eprintln!("✗ Failed to set tray icon: {}", e);
+                            }
                         }
-                        Err(e) => {
-                            eprintln!("Failed to load icon from {:?}: {}", icon_path, e);
-                        }
+                    }
+                    Err(e) => {
+                        eprintln!("✗ Failed to load image from {:?}: {}", icon_path, e);
                     }
                 }
             }
         }
         
         if !icon_loaded {
-            eprintln!("Could not find icon file: {}", icon_filename);
+            eprintln!("✗ Could not find icon file '{}' in any of the following paths:", icon_filename);
+            for path in &possible_paths {
+                eprintln!("  - {:?} (exists: {})", path, path.exists());
+            }
         }
     }
 }
