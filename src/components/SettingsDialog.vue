@@ -122,6 +122,13 @@ function handleResetLocal() {
               </select>
             </label>
           </div>
+
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.enableFloatingBall" />
+              <span>显示桌面悬浮球</span>
+            </label>
+          </div>
         </section>
         <footer class="dialog-footer">
           <button type="button" class="ghost" @click="handleResetLocal">

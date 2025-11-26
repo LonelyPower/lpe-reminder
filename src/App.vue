@@ -10,6 +10,7 @@ import TimerPanel from "./components/TimerPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
+import FloatingBall from "./components/FloatingBall.vue";
 import { useTimer } from "./composables/useTimer";
 import { useSettings } from "./composables/useSettings";
 import { watch, onMounted, onBeforeUnmount } from "vue";
@@ -126,6 +127,19 @@ function handleReset() {
     minutesSecondsToMs(settings.breakDurationMinutes, settings.breakDurationSeconds)
   );
   timer.reset();
+}
+
+// 悬浮球控制
+function handleFloatingBallToggle() {
+  if (timer.isRunning.value) {
+    timer.pause();
+  } else {
+    timer.start();
+  }
+}
+
+function handleFloatingBallSettings() {
+  openSettings();
 }
 
 async function handleCloseConfirm(minimize: boolean, remember: boolean) {
@@ -289,6 +303,18 @@ onBeforeUnmount(() => {
     <CloseConfirmDialog
       :visible="showCloseConfirm"
       @confirm="handleCloseConfirm"
+    />
+    
+    <!-- 悬浮球 -->
+    <FloatingBall
+      v-if="settings.enableFloatingBall"
+      :mode="timer.mode.value"
+      :remaining-ms="timer.remainingMs.value"
+      :is-running="timer.isRunning.value"
+      @toggle="handleFloatingBallToggle"
+      @reset="handleReset"
+      @skip-break="timer.skipBreak()"
+      @settings="handleFloatingBallSettings"
     />
   </main>
 </template>
