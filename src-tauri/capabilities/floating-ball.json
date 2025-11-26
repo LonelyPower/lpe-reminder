@@ -1,0 +1,18 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "floating-ball",
+  "description": "Capability for the floating ball window",
+  "windows": [
+    "floating-ball"
+  ],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:allow-set-position",
+    "core:window:allow-outer-position",
+    "core:window:allow-inner-position",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:menu:default"
+  ]
+}

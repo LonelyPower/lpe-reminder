@@ -14,7 +14,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue"
 import { getCurrentWindow, PhysicalPosition } from "@tauri-apps/api/window"
 import { listen, emit, type UnlistenFn } from "@tauri-apps/api/event"
-import { Menu, PredefinedMenuItem } from "@tauri-apps/api/menu"
+import { PredefinedMenuItem } from "@tauri-apps/api/menu"
 import { formatTime } from "../utils/timeUtils"
 
 // 计时器状态
@@ -36,29 +36,55 @@ const statusClass = computed(() => {
 
 // 拖拽相关
 let isDragging = false
-let offsetX = 0
-let offsetY = 0
+let startX = 0
+let startY = 0
+let windowX = 0
+let windowY = 0
+let lastUpdateTime = 0
 
-const startDrag = (e: MouseEvent) => {
+const startDrag = async (e: MouseEvent) => {
+  e.preventDefault()
   isDragging = true
-  offsetX = e.clientX
-  offsetY = e.clientY
+  startX = e.screenX
+  startY = e.screenY
+  
+  // 获取当前窗口位置
+  const win = getCurrentWindow()
+  const position = await win.outerPosition()
+  windowX = position.x
+  windowY = position.y
+  
+  console.log("[FloatingBall] Drag started at", { startX, startY, windowX, windowY })
 
   document.addEventListener("mousemove", onDrag)
   document.addEventListener("mouseup", stopDrag)
 }
 
-const onDrag = async (e: MouseEvent) => {
+const onDrag = (e: MouseEvent) => {
   if (!isDragging) return
 
-  const dx = e.screenX - offsetX
-  const dy = e.screenY - offsetY
+  // 节流：每16ms更新一次（约60fps）
+  const now = Date.now()
+  if (now - lastUpdateTime < 16) return
+  lastUpdateTime = now
 
+  // 计算鼠标移动的距离
+  const deltaX = e.screenX - startX
+  const deltaY = e.screenY - startY
+
+  // 计算新的窗口位置
+  const newX = windowX + deltaX
+  const newY = windowY + deltaY
+
+  // 异步更新窗口位置（不阻塞事件处理）
   const win = getCurrentWindow()
-  await win.setPosition(new PhysicalPosition(dx, dy))
+  win.setPosition(new PhysicalPosition(newX, newY)).catch((err) => {
+    console.error("[FloatingBall] Failed to set position:", err)
+  })
 }
 
 const stopDrag = () => {
+  console.log("[FloatingBall] Drag stopped")
   isDragging = false
   document.removeEventListener("mousemove", onDrag)
   document.removeEventListener("mouseup", stopDrag)
@@ -72,47 +98,60 @@ const handleClick = async () => {
 
 // 右键菜单
 const handleRightClick = async (e: MouseEvent) => {
-  const items = await Menu.new({
-    items: [
-      {
-        id: "reset",
-        text: "重置计时器",
-        action: () => emit("floating-ball-reset"),
-      },
-      {
-        id: "skip",
-        text: "跳过休息",
-        enabled: mode.value === "break",
-        action: () => emit("floating-ball-skip-break"),
-      },
-      await PredefinedMenuItem.new({ item: "Separator" }),
-      {
-        id: "settings",
-        text: "打开设置",
-        action: () => emit("floating-ball-open-settings"),
-      },
-    ],
-  })
+  try {
+    const { Menu: MenuClass, MenuItem } = await import("@tauri-apps/api/menu")
+    
+    const resetItem = await MenuItem.new({
+      id: "reset",
+      text: "重置计时器",
+      action: () => emit("floating-ball-reset"),
+    })
+    
+    const skipItem = await MenuItem.new({
+      id: "skip",
+      text: "跳过休息",
+      enabled: mode.value === "break",
+      action: () => emit("floating-ball-skip-break"),
+    })
+    
+    const separator = await PredefinedMenuItem.new({ item: "Separator" })
+    
+    const settingsItem = await MenuItem.new({
+      id: "settings",
+      text: "打开设置",
+      action: () => emit("floating-ball-open-settings"),
+    })
+    
+    const menu = await MenuClass.new({
+      items: [resetItem, skipItem, separator, settingsItem],
+    })
 
-  await items.popup(new PhysicalPosition(e.clientX, e.clientY))
+    await menu.popup(new PhysicalPosition(e.screenX, e.screenY))
+  } catch (error) {
+    console.error("[FloatingBall] Failed to show context menu:", error)
+  }
 }
 
 // 监听主窗口的计时器状态更新
 let unlistenTimerUpdate: UnlistenFn | null = null
 
 onMounted(async () => {
+  console.log("[FloatingBall] Component mounted")
+  
   // 监听计时器状态更新
   unlistenTimerUpdate = await listen<{
     mode: "idle" | "work" | "break"
     isRunning: boolean
     remainingMs: number
   }>("timer-update", (event) => {
+    console.log("[FloatingBall] Timer update received:", event.payload)
     mode.value = event.payload.mode
     isRunning.value = event.payload.isRunning
     remainingMs.value = event.payload.remainingMs
   })
 
   // 请求初始状态
+  console.log("[FloatingBall] Requesting initial state")
   await emit("floating-ball-ready")
 })
 
