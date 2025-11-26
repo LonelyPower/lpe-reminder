@@ -263,6 +263,24 @@ onMounted(async () => {
   );
   stopWatchers.value.push(stopFloatingWindowSizeWatch);
 
+  // 监听悬浮窗显示设置变化
+  const stopFloatingWindowDisplayWatch = watch(
+    () => [settings.floatingWindowShowTimer, settings.floatingWindowShowState],
+    ([showTimer, showState]) => {
+      if (settings.enableFloatingWindow) {
+        console.log("[FloatingWindow] Display settings:", { showTimer, showState });
+        safeExecute(async () => {
+          await appWindow.emit("float-display-settings-sync", { 
+            showTimer: showTimer as boolean, 
+            showState: showState as boolean 
+          });
+        }, "Sync display settings to floating window");
+      }
+    },
+    { immediate: true }
+  );
+  stopWatchers.value.push(stopFloatingWindowDisplayWatch);
+
   // 定期同步计时器状态到悬浮窗
   const syncFloatingWindowState = async () => {
     if (!settings.enableFloatingWindow) return;

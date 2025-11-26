@@ -142,6 +142,19 @@ function handleResetLocal() {
             </label>
           </div>
 
+          <div v-if="localSettings.enableFloatingWindow" class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.floatingWindowShowTimer" />
+              <span>悬浮窗显示计时器</span>
+            </label>
+          </div>
+          <div v-if="localSettings.enableFloatingWindow" class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.floatingWindowShowState" />
+              <span>悬浮窗显示状态</span>
+            </label>
+          </div>
+
           <div class="form-group">
             <label>
               <span>关闭窗口时</span>

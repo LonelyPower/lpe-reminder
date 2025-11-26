@@ -13,6 +13,10 @@ const mode = ref<TimerMode>("idle");
 const remainingMs = ref(0);
 const isRunning = ref(false);
 
+// 显示控制设置
+const showTimer = ref(settings.floatingWindowShowTimer);
+const showState = ref(settings.floatingWindowShowState);
+
 // 窗口尺寸（用于自适应字体）
 const windowWidth = ref(settings.floatingWindowWidth);
 const windowHeight = ref(settings.floatingWindowHeight);
@@ -137,14 +141,23 @@ onMounted(async () => {
       windowHeight.value = event.payload.height;
     }
   );
+
+  // 监听显示设置变化
+  await listen<{ showTimer: boolean; showState: boolean }>(
+    "float-display-settings-sync",
+    (event) => {
+      showTimer.value = event.payload.showTimer;
+      showState.value = event.payload.showState;
+    }
+  );
 });
 </script>
 
 <template>
   <div class="floating-window" :style="{ '--border-color': stateColor }" @contextmenu="handleContextMenu">
     <div class="time-display" :style="{ color: stateColor, fontSize: fontSize + 'px' }" @click="handleTimeClick">
-      <div class="time-text">{{ displayTime }}</div>
-      <div class="state-text">{{ stateText }}</div>
+      <div v-if="showTimer" class="time-text">{{ displayTime }}</div>
+      <div v-if="showState" class="state-text">{{ stateText }}</div>
     </div>
     <div class="drag-handle" @mousedown="handleDragHandleMouseDown" title="拖动窗口">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
