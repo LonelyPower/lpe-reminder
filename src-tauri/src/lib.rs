@@ -253,19 +253,29 @@ pub fn run() {
                 // 构建候选路径
                 let mut possible_paths = Vec::new();
                 
+                // 1. 当前工作目录/icons (Cargo 运行时 cwd 是 src-tauri/)
                 if let Ok(current_dir) = std::env::current_dir() {
+                    possible_paths.push(current_dir.join("icons").join(filename));
+                    // 也尝试项目根目录 (如果 cwd 是项目根)
                     possible_paths.push(current_dir.join("src-tauri").join("icons").join(filename));
                 }
                 
+                // 2. 可执行文件目录的相对路径
                 if let Ok(exe_dir) = std::env::current_exe() {
-                    if let Some(parent) = exe_dir.parent() {
-                        possible_paths.push(parent.join("icons").join(filename));
-                        if let Some(grandparent) = parent.parent() {
-                            possible_paths.push(grandparent.join("icons").join(filename));
+                    if let Some(exe_parent) = exe_dir.parent() {
+                        // target/debug/icons
+                        possible_paths.push(exe_parent.join("icons").join(filename));
+                        
+                        // target/debug -> target -> src-tauri/icons
+                        if let Some(target_dir) = exe_parent.parent() {
+                            if let Some(src_tauri_dir) = target_dir.parent() {
+                                possible_paths.push(src_tauri_dir.join("icons").join(filename));
+                            }
                         }
                     }
                 }
                 
+                // 3. Tauri 资源路径（生产模式）
                 if let Ok(resource_path) = app.path().resolve(
                     format!("icons/{}", filename), 
                     tauri::path::BaseDirectory::Resource
@@ -277,20 +287,28 @@ pub fn run() {
                 let mut loaded = false;
                 for icon_path in &possible_paths {
                     if icon_path.exists() {
-                        if let Ok(img) = image::open(icon_path) {
-                            let rgba = img.to_rgba8();
-                            let (width, height) = rgba.dimensions();
-                            let raw_data = rgba.into_raw();
-                            icon_cache.insert(key.to_string(), raw_data, width, height);
-                            println!("✓ Preloaded icon '{}' from {:?}", key, icon_path);
-                            loaded = true;
-                            break;
+                        match image::open(icon_path) {
+                            Ok(img) => {
+                                let rgba = img.to_rgba8();
+                                let (width, height) = rgba.dimensions();
+                                let raw_data = rgba.into_raw();
+                                icon_cache.insert(key.to_string(), raw_data, width, height);
+                                println!("✓ Preloaded icon '{}' from {:?}", key, icon_path);
+                                loaded = true;
+                                break;
+                            }
+                            Err(e) => {
+                                eprintln!("  ✗ Failed to load image from {:?}: {}", icon_path, e);
+                            }
                         }
                     }
                 }
                 
                 if !loaded {
-                    eprintln!("✗ Failed to preload icon '{}'", key);
+                    eprintln!("✗ Failed to preload icon '{}'. Tried {} paths:", key, possible_paths.len());
+                    for (i, path) in possible_paths.iter().enumerate() {
+                        eprintln!("  {}. {:?} (exists: {})", i + 1, path, path.exists());
+                    }
                 }
             }
             
