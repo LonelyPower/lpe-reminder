@@ -1,6 +1,7 @@
 import { reactive, watch } from "vue";
 
 export interface AppSettings {
+  timerMode: "countdown" | "stopwatch";
   workDurationMinutes: number;
   workDurationSeconds: number;
   breakDurationMinutes: number;
@@ -19,6 +20,7 @@ export interface AppSettings {
 const STORAGE_KEY = "lpe-reminder-settings";
 
 const defaultSettings: AppSettings = {
+  timerMode: "countdown",
   workDurationMinutes: 25,
   workDurationSeconds: 0,
   breakDurationMinutes: 5,

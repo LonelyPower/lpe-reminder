@@ -7,10 +7,12 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 import TimerPanel from "./components/TimerPanel.vue";
+import StopwatchPanel from "./components/StopwatchPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
 import { useTimer } from "./composables/useTimer";
+import { useStopwatch } from "./composables/useStopwatch";
 import { useSettings } from "./composables/useSettings";
 import { watch, onMounted, onBeforeUnmount } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -27,6 +29,7 @@ const unlistenFns = ref<UnlistenFn[]>([]);
 // 存储 watch 的停止函数
 const stopWatchers = ref<(() => void)[]>([]);
 
+// 倒计时器
 const timer = useTimer({
   workDurationMs: minutesSecondsToMs(
     settings.workDurationMinutes,
@@ -89,6 +92,9 @@ const timer = useTimer({
     }
   },
 });
+
+// 正计时器
+const stopwatch = useStopwatch();
 
 // 监听设置变化，动态更新计时器配置
 watch(
@@ -160,19 +166,31 @@ onMounted(async () => {
   unlistenFns.value.push(
     await listen("tray-start", () => {
       console.log("[Tray] Start event received");
-      timer.start();
+      if (settings.timerMode === "countdown") {
+        timer.start();
+      } else {
+        stopwatch.start();
+      }
     })
   );
   unlistenFns.value.push(
     await listen("tray-pause", () => {
       console.log("[Tray] Pause event received");
-      timer.pause();
+      if (settings.timerMode === "countdown") {
+        timer.pause();
+      } else {
+        stopwatch.pause();
+      }
     })
   );
   unlistenFns.value.push(
     await listen("tray-reset", () => {
-      console.log("[Tray] Reset event received");
-      handleReset();
+      console.log("[Tray] Reset/Stop event received");
+      if (settings.timerMode === "countdown") {
+        handleReset();
+      } else {
+        stopwatch.stop();
+      }
     })
   );
   unlistenFns.value.push(
@@ -214,13 +232,26 @@ onMounted(async () => {
 
   // 同步托盘图标状态（保存停止函数）
   const stopTrayIconWatch = watch(
-    () => [timer.mode.value, timer.isRunning.value],
+    () => [
+      settings.timerMode,
+      timer.mode.value, 
+      timer.isRunning.value,
+      stopwatch.isRunning.value,
+      stopwatch.elapsedMs.value
+    ],
     () => {
       let state = "idle";
-      if (timer.mode.value === "work") {
-        state = timer.isRunning.value ? "working" : "paused";
-      } else if (timer.mode.value === "break") {
-        state = "break";
+      if (settings.timerMode === "countdown") {
+        if (timer.mode.value === "work") {
+          state = timer.isRunning.value ? "working" : "paused";
+        } else if (timer.mode.value === "break") {
+          state = "break";
+        }
+      } else {
+        // 正计时模式
+        if (stopwatch.elapsedMs.value > 0 || stopwatch.isRunning.value) {
+          state = stopwatch.isRunning.value ? "working" : "paused";
+        }
       }
       console.log("[Tray] Updating icon state to:", state);
       safeInvoke("set_tray_icon", { state });
@@ -286,17 +317,33 @@ onMounted(async () => {
     if (!settings.enableFloatingWindow) return;
     
     await safeExecute(async () => {
-      await appWindow.emit("timer-state-sync", {
-        mode: timer.mode.value,
-        remainingMs: timer.remainingMs.value,
-        isRunning: timer.isRunning.value,
-      });
+      if (settings.timerMode === "countdown") {
+        await appWindow.emit("timer-state-sync", {
+          mode: timer.mode.value,
+          remainingMs: timer.remainingMs.value,
+          isRunning: timer.isRunning.value,
+          timerMode: "countdown",
+        });
+      } else {
+        await appWindow.emit("timer-state-sync", {
+          elapsedMs: stopwatch.elapsedMs.value,
+          isRunning: stopwatch.isRunning.value,
+          timerMode: "stopwatch",
+        });
+      }
     }, "Sync timer state to floating window");
   };
 
   // 监听计时器状态变化，同步到悬浮窗
   const stopTimerStateWatch = watch(
-    () => [timer.mode.value, timer.remainingMs.value, timer.isRunning.value],
+    () => [
+      settings.timerMode,
+      timer.mode.value, 
+      timer.remainingMs.value, 
+      timer.isRunning.value,
+      stopwatch.elapsedMs.value,
+      stopwatch.isRunning.value
+    ],
     () => {
       syncFloatingWindowState();
     }
@@ -307,13 +354,29 @@ onMounted(async () => {
   unlistenFns.value.push(
     await listen("float-start", () => {
       console.log("[Float] Start event received");
-      timer.start();
+      if (settings.timerMode === "countdown") {
+        timer.start();
+      } else {
+        stopwatch.start();
+      }
     })
   );
   unlistenFns.value.push(
     await listen("float-pause", () => {
       console.log("[Float] Pause event received");
-      timer.pause();
+      if (settings.timerMode === "countdown") {
+        timer.pause();
+      } else {
+        stopwatch.pause();
+      }
+    })
+  );
+  unlistenFns.value.push(
+    await listen("float-stop", () => {
+      console.log("[Float] Stop event received");
+      if (settings.timerMode === "stopwatch") {
+        stopwatch.stop();
+      }
     })
   );
 
@@ -359,6 +422,7 @@ onBeforeUnmount(() => {
     </header>
 
     <TimerPanel
+      v-if="settings.timerMode === 'countdown'"
       :mode="timer.mode.value"
       :remaining-ms="timer.remainingMs.value"
       :cycle-count="timer.cycleCount.value"
@@ -368,6 +432,15 @@ onBeforeUnmount(() => {
       @pause="timer.pause()"
       @reset="handleReset"
       @skip-break="timer.skipBreak()"
+    />
+
+    <StopwatchPanel
+      v-if="settings.timerMode === 'stopwatch'"
+      :elapsed-ms="stopwatch.elapsedMs.value"
+      :is-running="stopwatch.isRunning.value"
+      @start="stopwatch.start()"
+      @pause="stopwatch.pause()"
+      @stop="stopwatch.stop()"
     />
 
     <BreakOverlay
