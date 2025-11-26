@@ -12,9 +12,24 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "lpe-reminder",
         "width": 800,
         "height": 600
+      },
+      {
+        "label": "float",
+        "title": "LPE Timer",
+        "url": "float-window.html",
+        "width": 120,
+        "height": 50,
+        "resizable": false,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "transparent": true,
+        "shadow": false,
+        "visible": false
       }
     ],
     "security": {

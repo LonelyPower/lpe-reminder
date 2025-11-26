@@ -228,6 +228,97 @@ onMounted(async () => {
     { immediate: true } // 立即执行一次，确保初始状态正确
   );
   stopWatchers.value.push(stopTrayIconWatch);
+
+  // 监听悬浮窗开关，控制显示/隐藏
+  const stopFloatingWindowWatch = watch(
+    () => settings.enableFloatingWindow,
+    (enabled) => {
+      console.log("[FloatingWindow] Toggle:", enabled);
+      safeInvoke("toggle_floating_window", { show: enabled });
+    },
+    { immediate: true }
+  );
+  stopWatchers.value.push(stopFloatingWindowWatch);
+
+  // 监听悬浮窗大小变化，动态调整窗口尺寸
+  const stopFloatingWindowSizeWatch = watch(
+    () => [settings.floatingWindowWidth, settings.floatingWindowHeight],
+    ([width, height]) => {
+      if (settings.enableFloatingWindow) {
+        console.log("[FloatingWindow] Resize to:", width, "x", height);
+        safeInvoke("resize_floating_window", { 
+          width: width as number, 
+          height: height as number 
+        });
+        // 同步窗口尺寸到悬浮窗（用于自适应字体）
+        safeExecute(async () => {
+          await appWindow.emit("float-size-sync", { 
+            width: width as number, 
+            height: height as number 
+          });
+        }, "Sync window size to floating window");
+      }
+    },
+    { immediate: true }
+  );
+  stopWatchers.value.push(stopFloatingWindowSizeWatch);
+
+  // 监听悬浮窗显示设置变化
+  const stopFloatingWindowDisplayWatch = watch(
+    () => [settings.floatingWindowShowTimer, settings.floatingWindowShowState],
+    ([showTimer, showState]) => {
+      if (settings.enableFloatingWindow) {
+        console.log("[FloatingWindow] Display settings:", { showTimer, showState });
+        safeExecute(async () => {
+          await appWindow.emit("float-display-settings-sync", { 
+            showTimer: showTimer as boolean, 
+            showState: showState as boolean 
+          });
+        }, "Sync display settings to floating window");
+      }
+    },
+    { immediate: true }
+  );
+  stopWatchers.value.push(stopFloatingWindowDisplayWatch);
+
+  // 定期同步计时器状态到悬浮窗
+  const syncFloatingWindowState = async () => {
+    if (!settings.enableFloatingWindow) return;
+    
+    await safeExecute(async () => {
+      await appWindow.emit("timer-state-sync", {
+        mode: timer.mode.value,
+        remainingMs: timer.remainingMs.value,
+        isRunning: timer.isRunning.value,
+      });
+    }, "Sync timer state to floating window");
+  };
+
+  // 监听计时器状态变化，同步到悬浮窗
+  const stopTimerStateWatch = watch(
+    () => [timer.mode.value, timer.remainingMs.value, timer.isRunning.value],
+    () => {
+      syncFloatingWindowState();
+    }
+  );
+  stopWatchers.value.push(stopTimerStateWatch);
+
+  // 监听悬浮窗的控制事件
+  unlistenFns.value.push(
+    await listen("float-start", () => {
+      console.log("[Float] Start event received");
+      timer.start();
+    })
+  );
+  unlistenFns.value.push(
+    await listen("float-pause", () => {
+      console.log("[Float] Pause event received");
+      timer.pause();
+    })
+  );
+
+  // 初始同步一次状态
+  await syncFloatingWindowState();
 });
 
 // 组件卸载时清理所有监听器

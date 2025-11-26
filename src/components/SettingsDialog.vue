@@ -111,6 +111,49 @@ function handleResetLocal() {
               <span>启用系统通知</span>
             </label>
           </div>
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.enableFloatingWindow" />
+              <span>启用悬浮窗</span>
+            </label>
+          </div>
+
+          <div v-if="localSettings.enableFloatingWindow" class="form-group">
+            <label>
+              <span>悬浮窗大小</span>
+              <div class="time-inputs">
+                <input
+                  type="number"
+                  v-model.number="localSettings.floatingWindowWidth"
+                  min="100"
+                  max="400"
+                  placeholder="宽度"
+                />
+                <span class="unit">×</span>
+                <input
+                  type="number"
+                  v-model.number="localSettings.floatingWindowHeight"
+                  min="40"
+                  max="200"
+                  placeholder="高度"
+                />
+                <span class="unit">像素</span>
+              </div>
+            </label>
+          </div>
+
+          <div v-if="localSettings.enableFloatingWindow" class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.floatingWindowShowTimer" />
+              <span>悬浮窗显示计时器</span>
+            </label>
+          </div>
+          <div v-if="localSettings.enableFloatingWindow" class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.floatingWindowShowState" />
+              <span>悬浮窗显示状态</span>
+            </label>
+          </div>
 
           <div class="form-group">
             <label>

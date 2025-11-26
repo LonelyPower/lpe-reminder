@@ -9,6 +9,11 @@ export interface AppSettings {
   enablerestSound: boolean;
   enableNotification: boolean;
   closeBehavior: "ask" | "minimize" | "quit";
+  enableFloatingWindow: boolean;
+  floatingWindowWidth: number;
+  floatingWindowHeight: number;
+  floatingWindowShowTimer: boolean;
+  floatingWindowShowState: boolean;
 }
 
 const STORAGE_KEY = "lpe-reminder-settings";
@@ -22,6 +27,11 @@ const defaultSettings: AppSettings = {
   enablerestSound: true,
   enableNotification: true,
   closeBehavior: "ask",
+  enableFloatingWindow: false,
+  floatingWindowWidth: 150,
+  floatingWindowHeight: 50,
+  floatingWindowShowTimer: true,
+  floatingWindowShowState: true,
 };
 
 // 1. 初始化：尝试从 localStorage 读取，失败则使用默认值
