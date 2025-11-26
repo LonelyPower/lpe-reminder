@@ -65,6 +65,7 @@ const timer = useTimer({
       endTime: endTime,
       duration: workDuration,
     });
+    console.log("[Countdown] Work record saved:", workDuration, "ms");
 
     // 1. 显示、置顶并获取焦点
     const win = getCurrentWindow();
@@ -104,8 +105,19 @@ const timer = useTimer({
     }
   },
   onBreakEnd: async () => {
-    // 仅在首次到达目标时间时触发（播放音乐）
-    // 记录保存移至 handleCountdownBreakEnd
+    // 0. 保存休息记录（使用实际休息时长）
+    const endTime = Date.now();
+    const actualBreakDuration = timer.breakElapsedMs.value;
+    addRecord({
+      type: "countdown",
+      mode: "break",
+      startTime: endTime - actualBreakDuration,
+      endTime: endTime,
+      duration: actualBreakDuration,
+    });
+    console.log("[Countdown] Break record auto-saved:", actualBreakDuration, "ms");
+
+    // 1. 播放提示音
     if (settings.enablerestSound) {
       await safeExecute(async () => {
         await playAudio("/notification-chime.mp3", 0.5);
@@ -204,29 +216,17 @@ function handleStopwatchComplete(data: { name: string; takeBreak: boolean }) {
   }
 }
 
-// 处理倒计时休息结束
+// 处理倒计时休息结束（用户手动点击按钮）
 async function handleCountdownBreakEnd() {
-  const endTime = Date.now();
-  const actualBreakDuration = timer.breakElapsedMs.value; // 使用实际休息时长
-  
-  // 保存休息记录
-  addRecord({
-    type: "countdown",
-    mode: "break",
-    startTime: endTime - actualBreakDuration,
-    endTime: endTime,
-    duration: actualBreakDuration,
-  });
-  console.log("[Countdown] Break record saved:", actualBreakDuration, "ms");
-  
   // 取消窗口置顶
   const win = getCurrentWindow();
   await safeExecute(async () => {
     await win.setAlwaysOnTop(false);
   }, "Cancel window always on top");
   
-  // 结束休息
+  // 结束休息（休息记录已在 onBreakEnd 中自动保存）
   timer.skipBreak();
+  console.log("[Countdown] Break ended manually by user");
 }
 
 // 处理正计时休息结束

@@ -49,7 +49,8 @@ export function useTimerHistory() {
   // 初始化（仅执行一次）
   if (!initialized) {
     initialized = true;
-    loadRecords();
+    loadRecords(); // 异步加载，不阻塞初始化
+    console.log("[useTimerHistory] Initializing and loading records...");
   }
   
   /**
@@ -60,6 +61,8 @@ export function useTimerHistory() {
       ...record,
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
+    
+    console.log("[useTimerHistory] Adding record:", newRecord);
     
     // 添加到内存
     records.value.unshift(newRecord);
@@ -79,8 +82,10 @@ export function useTimerHistory() {
       end_time: newRecord.endTime,
       duration: newRecord.duration,
       created_at: Date.now(),
+    }).then(() => {
+      console.log("[useTimerHistory] Record saved to database successfully");
     }).catch(error => {
-      console.error("Failed to save record to database:", error);
+      console.error("[useTimerHistory] Failed to save record to database:", error);
     });
   }
 
