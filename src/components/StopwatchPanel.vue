@@ -65,7 +65,7 @@ function onPrimaryClick() {
         @click="emit('stop')"
         :disabled="props.elapsedMs === 0"
       >
-        停止
+        结束
       </button>
     </div>
   </section>

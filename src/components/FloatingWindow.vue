@@ -94,27 +94,12 @@ async function handleClick() {
   }
 }
 
-// 右键单击：停止（仅正计时模式）
+// 右键单击：显示主窗口
 async function handleRightClick(e: MouseEvent) {
   e.preventDefault();
   
-  if (timerMode.value === "stopwatch" && (elapsedMs.value > 0 || isRunning.value)) {
-    const { getAllWindows } = await import("@tauri-apps/api/window");
-    const windows = await getAllWindows();
-    const mainWindow = windows.find((w) => w.label === "main");
-    
-    if (mainWindow) {
-      await mainWindow.emit("float-stop", {});
-      return;
-    }
-  }
-  
-  // 其他情况显示主窗口
-  await handleShowMainWindow(e);
-}
-
-async function handleShowMainWindow(e: MouseEvent) {
-  e.preventDefault();
+  // 右键点击统一显示主窗口，不执行停止操作
+  // 用户可以在主窗口或通过左键点击来控制计时器
   const { getAllWindows } = await import("@tauri-apps/api/window");
   const windows = await getAllWindows();
   const mainWindow = windows.find((w) => w.label === "main");
