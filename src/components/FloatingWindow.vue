@@ -29,7 +29,7 @@ async function handleClick() {
   const { getAllWindows } = await import("@tauri-apps/api/window");
   const windows = await getAllWindows();
   const mainWindow = windows.find((w) => w.label === "main");
-  
+
   if (mainWindow) {
     if (mode.value === "idle") {
       // 空闲状态，点击开始工作
@@ -48,12 +48,12 @@ async function handleClick() {
 // 右键菜单：创建一个新的独立窗口来显示菜单
 async function handleContextMenu(e: MouseEvent) {
   e.preventDefault();
-  
+
   // 创建简单的原生菜单，通过主窗口显示
   const { getAllWindows } = await import("@tauri-apps/api/window");
   const windows = await getAllWindows();
   const mainWindow = windows.find((w) => w.label === "main");
-  
+
   if (mainWindow) {
     // 显示主窗口并打开设置（简化的右键操作）
     await mainWindow.show();
@@ -65,11 +65,11 @@ async function handleContextMenu(e: MouseEvent) {
 async function handleDragHandleMouseDown(e: MouseEvent) {
   // 只处理左键
   if (e.button !== 0) return;
-  
+
   e.stopPropagation(); // 阻止事件冒泡
-  
+
   const win = getCurrentWindow();
-  
+
   // 使用 Tauri 的内置拖拽功能
   try {
     await win.startDragging();
@@ -85,10 +85,10 @@ function handleTimeClick() {
 
 onMounted(async () => {
   const win = getCurrentWindow();
-  
+
   // 设置窗口始终置顶
   await win.setAlwaysOnTop(true);
-  
+
   // 监听主窗口同步的计时器状态
   await listen<{ mode: TimerMode; remainingMs: number; isRunning: boolean }>(
     "timer-state-sync",
@@ -98,37 +98,17 @@ onMounted(async () => {
       isRunning.value = event.payload.isRunning;
     }
   );
-  
 });
 </script>
 
 <template>
-  <div
-    class="floating-window"
-    :style="{ borderColor: stateColor }"
-    @contextmenu="handleContextMenu"
-  >
-    <div 
-      class="time-display" 
-      :style="{ color: stateColor }"
-      @click="handleTimeClick"
-    >
+  <div class="floating-window" :style="{ '--border-color': stateColor }" @contextmenu="handleContextMenu">
+    <div class="time-display" :style="{ color: stateColor }" @click="handleTimeClick">
       {{ displayTime }}
     </div>
-    <div 
-      class="drag-handle"
-      @mousedown="handleDragHandleMouseDown"
-      title="拖动窗口"
-    >
-      <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="16" 
-        height="16" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        stroke-width="2"
-      >
+    <div class="drag-handle" @mousedown="handleDragHandleMouseDown" title="拖动窗口">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2">
         <circle cx="9" cy="6" r="1" />
         <circle cx="9" cy="12" r="1" />
         <circle cx="9" cy="18" r="1" />
@@ -151,16 +131,21 @@ onMounted(async () => {
   padding: 0 8px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
-  border: 3px solid;
   border-radius: 12px;
   user-select: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: border-color 0.3s ease;
+  /* 使用inset阴影模拟边框效果，并添加外阴影 */
+  box-shadow:
+    inset 0 0 0 2px var(--border-color, #3b82f6),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.3s ease;
+  --border-color: #3b82f6;
 }
 
 .floating-window:hover {
   background: rgba(255, 255, 255, 1);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 0 0 2px var(--border-color, #3b82f6),
+    0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .time-display {
