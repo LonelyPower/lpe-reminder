@@ -153,6 +153,12 @@ onMounted(async () => {
     console.log("[Tray] Reset event received");
     handleReset();
   });
+  await listen("tray-settings", async () => {
+    console.log("[Tray] Settings event received");
+    await appWindow.show();
+    await appWindow.setFocus();
+    showSettings.value = true;
+  });
 
   // 处理窗口关闭请求
   await appWindow.onCloseRequested(async (event) => {

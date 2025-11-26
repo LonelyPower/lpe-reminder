@@ -52,9 +52,10 @@ pub fn run() {
             let start_i = MenuItem::with_id(app, "start", "开始工作", true, None::<&str>)?;
             let pause_i = MenuItem::with_id(app, "pause", "暂停", true, None::<&str>)?;
             let reset_i = MenuItem::with_id(app, "reset", "重置计时", true, None::<&str>)?;
+            let settings_i = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "退出应用", true, None::<&str>)?;
 
-            let menu = Menu::with_items(app, &[&start_i, &pause_i, &reset_i, &quit_i])?;
+            let menu = Menu::with_items(app, &[&start_i, &pause_i, &reset_i, &settings_i, &quit_i])?;
 
             // 创建托盘图标
             let _tray = TrayIconBuilder::with_id("tray")
@@ -73,6 +74,10 @@ pub fn run() {
                     "reset" => {
                         println!("Tray: Reset clicked");
                         let _ = app.emit("tray-reset", ());
+                    }
+                    "settings" => {
+                        println!("Tray: Settings clicked");
+                        let _ = app.emit("tray-settings", ());
                     }
                     "quit" => {
                         println!("Tray: Quit clicked");
