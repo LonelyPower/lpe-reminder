@@ -10,6 +10,8 @@
     "opener:default",
     "core:window:allow-set-focus",
     "core:window:allow-set-always-on-top",
-    "notification:default"
+    "notification:default",
+    "core:tray:default",
+    "core:menu:default"
   ]
 }
