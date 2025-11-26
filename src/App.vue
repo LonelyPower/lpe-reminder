@@ -11,9 +11,11 @@ import StopwatchPanel from "./components/StopwatchPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
+import HistoryPanel from "./components/HistoryPanel.vue";
 import { useTimer } from "./composables/useTimer";
 import { useStopwatch } from "./composables/useStopwatch";
 import { useSettings } from "./composables/useSettings";
+import { useTimerHistory } from "./composables/useTimerHistory";
 import { watch, onMounted, onBeforeUnmount } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { safeInvoke, safeExecute } from "./utils/errorHandler";
@@ -23,6 +25,10 @@ import { playAudio, preloadAudio } from "./utils/audioPlayer";
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
 const { settings } = useSettings();
+const { addRecord } = useTimerHistory();
+
+// 选项卡状态
+const activeTab = ref<"timer" | "history">("timer");
 
 // 存储事件监听器的清理函数
 const unlistenFns = ref<UnlistenFn[]>([]);
@@ -40,6 +46,20 @@ const timer = useTimer({
     settings.breakDurationSeconds
   ),
   onWorkEnd: async () => {
+    // 0. 保存工作记录
+    const endTime = Date.now();
+    const workDuration = minutesSecondsToMs(
+      settings.workDurationMinutes,
+      settings.workDurationSeconds
+    );
+    addRecord({
+      type: "countdown",
+      mode: "work",
+      startTime: endTime - workDuration,
+      endTime: endTime,
+      duration: workDuration,
+    });
+
     // 1. 显示、置顶并获取焦点
     const win = getCurrentWindow();
     await safeExecute(async () => {
@@ -78,6 +98,20 @@ const timer = useTimer({
     }
   },
   onBreakEnd: async () => {
+    // 0. 保存休息记录
+    const endTime = Date.now();
+    const breakDuration = minutesSecondsToMs(
+      settings.breakDurationMinutes,
+      settings.breakDurationSeconds
+    );
+    addRecord({
+      type: "countdown",
+      mode: "break",
+      startTime: endTime - breakDuration,
+      endTime: endTime,
+      duration: breakDuration,
+    });
+
     // 1. 取消窗口置顶
     const win = getCurrentWindow();
     await safeExecute(async () => {
@@ -95,6 +129,24 @@ const timer = useTimer({
 
 // 正计时器
 const stopwatch = useStopwatch();
+
+// 监听正计时停止，保存记录
+watch(
+  () => stopwatch.elapsedMs.value,
+  (newElapsed, oldElapsed) => {
+    // 当 elapsedMs 从非零变为零（即调用了 stop()），保存记录
+    if (oldElapsed > 0 && newElapsed === 0) {
+      const endTime = Date.now();
+      addRecord({
+        type: "stopwatch",
+        startTime: endTime - oldElapsed,
+        endTime: endTime,
+        duration: oldElapsed,
+      });
+      console.log("[Stopwatch] Record saved:", oldElapsed, "ms");
+    }
+  }
+);
 
 // 监听设置变化，动态更新计时器配置
 watch(
@@ -421,27 +473,52 @@ onBeforeUnmount(() => {
       </button>
     </header>
 
-    <TimerPanel
-      v-if="settings.timerMode === 'countdown'"
-      :mode="timer.mode.value"
-      :remaining-ms="timer.remainingMs.value"
-      :cycle-count="timer.cycleCount.value"
-      :total-duration-ms="timer.totalDurationMs.value"
-      :is-running="timer.isRunning.value"
-      @start="timer.start()"
-      @pause="timer.pause()"
-      @reset="handleReset"
-      @skip-break="timer.skipBreak()"
-    />
+    <div class="tabs">
+      <button 
+        type="button" 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'timer' }"
+        @click="activeTab = 'timer'"
+      >
+        计时器
+      </button>
+      <button 
+        type="button" 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'history' }"
+        @click="activeTab = 'history'"
+      >
+        历史记录
+      </button>
+    </div>
 
-    <StopwatchPanel
-      v-if="settings.timerMode === 'stopwatch'"
-      :elapsed-ms="stopwatch.elapsedMs.value"
-      :is-running="stopwatch.isRunning.value"
-      @start="stopwatch.start()"
-      @pause="stopwatch.pause()"
-      @stop="stopwatch.stop()"
-    />
+    <div v-show="activeTab === 'timer'" class="tab-content">
+      <TimerPanel
+        v-if="settings.timerMode === 'countdown'"
+        :mode="timer.mode.value"
+        :remaining-ms="timer.remainingMs.value"
+        :cycle-count="timer.cycleCount.value"
+        :total-duration-ms="timer.totalDurationMs.value"
+        :is-running="timer.isRunning.value"
+        @start="timer.start()"
+        @pause="timer.pause()"
+        @reset="handleReset"
+        @skip-break="timer.skipBreak()"
+      />
+
+      <StopwatchPanel
+        v-if="settings.timerMode === 'stopwatch'"
+        :elapsed-ms="stopwatch.elapsedMs.value"
+        :is-running="stopwatch.isRunning.value"
+        @start="stopwatch.start()"
+        @pause="stopwatch.pause()"
+        @stop="stopwatch.stop()"
+      />
+    </div>
+
+    <div v-show="activeTab === 'history'" class="tab-content">
+      <HistoryPanel />
+    </div>
 
     <BreakOverlay
       :visible="breakVisible"
@@ -488,5 +565,55 @@ onBeforeUnmount(() => {
 
 .settings-btn:hover {
   background: #f3f4f6;
+}
+
+.tabs {
+  max-width: 720px;
+  margin: 0 auto 20px;
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background: #f9fafb;
+  color: #374151;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.tab-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
