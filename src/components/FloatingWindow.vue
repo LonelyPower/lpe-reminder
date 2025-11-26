@@ -13,9 +13,6 @@ const mode = ref<TimerMode>("idle");
 const remainingMs = ref(0);
 const isRunning = ref(false);
 
-// 字体大小（响应式，从主窗口同步）
-const baseFontSize = ref(settings.floatingWindowFontSize);
-
 // 窗口尺寸（用于自适应字体）
 const windowWidth = ref(settings.floatingWindowWidth);
 const windowHeight = ref(settings.floatingWindowHeight);
@@ -24,11 +21,11 @@ const windowHeight = ref(settings.floatingWindowHeight);
 const fontSize = computed(() => {
   // 基准：50px 高度对应 18px 字体
   const baseHeight = 50;
-  const baseFontSizeValue = baseFontSize.value;
+  const baseFontSize = 18;
   
   // 根据窗口高度等比例缩放字体
   const scaleFactor = windowHeight.value / baseHeight;
-  const adaptiveFontSize = Math.round(baseFontSizeValue * scaleFactor);
+  const adaptiveFontSize = Math.round(baseFontSize * scaleFactor);
   
   // 限制字体大小范围（最小 12px，最大 48px）
   return Math.max(12, Math.min(48, adaptiveFontSize));
@@ -132,32 +129,12 @@ onMounted(async () => {
     }
   );
 
-  // 监听主窗口同步的字体大小
-  await listen<{ fontSize: number }>(
-    "float-font-size-sync",
-    (event) => {
-      baseFontSize.value = event.payload.fontSize;
-    }
-  );
-
   // 监听窗口尺寸变化（用于自适应字体）
   await listen<{ width: number; height: number }>(
     "float-size-sync",
-    async (event) => {
+    (event) => {
       windowWidth.value = event.payload.width;
       windowHeight.value = event.payload.height;
-      
-      // 窗口尺寸变化时，同步自适应后的字体大小到主窗口
-      const newAdaptiveFontSize = fontSize.value;
-      if (newAdaptiveFontSize !== baseFontSize.value) {
-        const { getAllWindows } = await import("@tauri-apps/api/window");
-        const windows = await getAllWindows();
-        const mainWindow = windows.find((w) => w.label === "main");
-        
-        if (mainWindow) {
-          await mainWindow.emit("float-adaptive-font-size", { fontSize: newAdaptiveFontSize });
-        }
-      }
     }
   );
 });
