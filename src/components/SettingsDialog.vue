@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, reactive, watch } from "vue";
+import { reactive, watch } from "vue";
 import { useSettings } from "../composables/useSettingsDB";
 import UserInfoSection from "./UserInfoSection.vue";
 
