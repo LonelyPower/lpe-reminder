@@ -12,14 +12,19 @@ import SettingsDialog from "./components/SettingsDialog.vue";
 import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
 import { useTimer } from "./composables/useTimer";
 import { useSettings } from "./composables/useSettings";
-import { watch, onMounted } from "vue";
-import { listen } from "@tauri-apps/api/event";
+import { watch, onMounted, onBeforeUnmount } from "vue";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
 const { settings } = useSettings();
+
+// 存储事件监听器的清理函数
+const unlistenFns = ref<UnlistenFn[]>([]);
+// 存储 watch 的停止函数
+const stopWatchers = ref<(() => void)[]>([]);
 
 const timer = useTimer({
   workDurationMs: minutesSecondsToMs(
@@ -46,7 +51,13 @@ const timer = useTimer({
     if (settings.enableworkSound) {
       await safeExecute(async () => {
         const audio = new Audio("/notification-piano.mp3");
-        await audio.play();
+        try {
+          await audio.play();
+        } finally {
+          // 清理 audio 对象
+          audio.src = "";
+          audio.load();
+        }
       }, "Play work end sound");
     }
 
@@ -80,7 +91,13 @@ const timer = useTimer({
     if (settings.enablerestSound) {
       await safeExecute(async () => {
         const audio = new Audio("/notification-chime.mp3");
-        await audio.play();
+        try {
+          await audio.play();
+        } finally {
+          // 清理 audio 对象
+          audio.src = "";
+          audio.load();
+        }
       }, "Play break end sound");
     }
   },
@@ -149,27 +166,35 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 onMounted(async () => {
   const appWindow = getCurrentWindow();
 
-  // 监听托盘菜单事件
-  await listen("tray-start", () => {
-    console.log("[Tray] Start event received");
-    timer.start();
-  });
-  await listen("tray-pause", () => {
-    console.log("[Tray] Pause event received");
-    timer.pause();
-  });
-  await listen("tray-reset", () => {
-    console.log("[Tray] Reset event received");
-    handleReset();
-  });
-  await listen("tray-settings", async () => {
-    console.log("[Tray] Settings event received");
-    await safeExecute(async () => {
-      await appWindow.show();
-      await appWindow.setFocus();
-      showSettings.value = true;
-    }, "Show settings from tray");
-  });
+  // 监听托盘菜单事件（保存清理函数）
+  unlistenFns.value.push(
+    await listen("tray-start", () => {
+      console.log("[Tray] Start event received");
+      timer.start();
+    })
+  );
+  unlistenFns.value.push(
+    await listen("tray-pause", () => {
+      console.log("[Tray] Pause event received");
+      timer.pause();
+    })
+  );
+  unlistenFns.value.push(
+    await listen("tray-reset", () => {
+      console.log("[Tray] Reset event received");
+      handleReset();
+    })
+  );
+  unlistenFns.value.push(
+    await listen("tray-settings", async () => {
+      console.log("[Tray] Settings event received");
+      await safeExecute(async () => {
+        await appWindow.show();
+        await appWindow.setFocus();
+        showSettings.value = true;
+      }, "Show settings from tray");
+    })
+  );
 
   // 处理窗口关闭请求
   await appWindow.onCloseRequested(async (event) => {
@@ -197,8 +222,8 @@ onMounted(async () => {
     showCloseConfirm.value = true;
   });
 
-  // 同步托盘图标状态
-  watch(
+  // 同步托盘图标状态（保存停止函数）
+  const stopTrayIconWatch = watch(
     () => [timer.mode.value, timer.isRunning.value],
     () => {
       let state = "idle";
@@ -212,6 +237,34 @@ onMounted(async () => {
     },
     { immediate: true } // 立即执行一次，确保初始状态正确
   );
+  stopWatchers.value.push(stopTrayIconWatch);
+});
+
+// 组件卸载时清理所有监听器
+onBeforeUnmount(() => {
+  console.log("[App] Cleaning up listeners and watchers...");
+  
+  // 清理事件监听器
+  unlistenFns.value.forEach((unlisten) => {
+    try {
+      unlisten();
+    } catch (error) {
+      console.error("[App] Failed to unlisten:", error);
+    }
+  });
+  unlistenFns.value = [];
+  
+  // 停止所有 watch
+  stopWatchers.value.forEach((stop) => {
+    try {
+      stop();
+    } catch (error) {
+      console.error("[App] Failed to stop watcher:", error);
+    }
+  });
+  stopWatchers.value = [];
+  
+  console.log("[App] Cleanup completed");
 });
 </script>
 
