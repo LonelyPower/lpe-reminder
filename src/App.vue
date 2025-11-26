@@ -13,7 +13,6 @@ import SettingsDialog from "./components/SettingsDialog.vue";
 import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
 import HistoryPanel from "./components/HistoryPanel.vue";
 import StopwatchCompleteDialog from "./components/StopwatchCompleteDialog.vue";
-import StopwatchBreakOverlay from "./components/StopwatchBreakOverlay.vue";
 import { useTimer } from "./composables/useTimer";
 import { useStopwatch } from "./composables/useStopwatch";
 import { useSettings } from "./composables/useSettings";
@@ -176,9 +175,6 @@ watch(
 );
 
 const breakVisible = computed(() => timer.mode.value === "break");
-const breakRemainingSeconds = computed(() =>
-  Math.max(0, Math.floor(timer.remainingMs.value / 1000))
-);
 
 function openSettings() {
   showSettings.value = true;
@@ -581,18 +577,34 @@ onBeforeUnmount(() => {
       <HistoryPanel />
     </div>
 
+    <!-- 倒计时休息遮罩 -->
     <BreakOverlay
+      v-if="settings.timerMode === 'countdown'"
       :visible="breakVisible"
-      :remaining-seconds="breakRemainingSeconds"
-      @skip="timer.skipBreak()"
+      :elapsed-ms="
+        minutesSecondsToMs(
+          settings.breakDurationMinutes,
+          settings.breakDurationSeconds
+        ) - timer.remainingMs.value
+      "
+      :target-ms="
+        minutesSecondsToMs(
+          settings.breakDurationMinutes,
+          settings.breakDurationSeconds
+        )
+      "
+      :is-countdown="true"
+      @end="timer.skipBreak()"
     />
 
-    <StopwatchBreakOverlay
+    <!-- 正计时休息遮罩 -->
+    <BreakOverlay
+      v-if="settings.timerMode === 'stopwatch'"
       :visible="stopwatch.mode.value === 'break'"
       :elapsed-ms="stopwatch.elapsedMs.value"
       :target-ms="stopwatch.breakTargetMs.value"
+      :is-countdown="false"
       @end="handleStopwatchBreakEnd"
-      @skip="stopwatch.skipBreak()"
     />
 
     <SettingsDialog :visible="showSettings" @close="closeSettings" />
