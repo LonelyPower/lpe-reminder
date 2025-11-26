@@ -16,10 +16,11 @@ const showContextMenu = ref(false);
 const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 
-// 拖拽功能
-let isDragging = false;
-let startX = 0;
-let startY = 0;
+// 拖拽功能相关状态
+const dragStartX = ref(0);
+const dragStartY = ref(0);
+const dragStartWindowX = ref(0);
+const dragStartWindowY = ref(0);
 
 // 计算显示的时间
 const displayTime = computed(() => formatTime(remainingMs.value));
@@ -102,47 +103,35 @@ async function handleMenuSettings() {
   }
 }
 
-// 鼠标按下开始拖拽
-function handleMouseDown(e: MouseEvent) {
+// 开始拖拽窗口
+async function handleMouseDown(e: MouseEvent) {
   // 只处理左键
   if (e.button !== 0) return;
   
-  isDragging = true;
-  startX = e.screenX;
-  startY = e.screenY;
-}
-
-// 鼠标移动时更新窗口位置
-async function handleMouseMove(e: MouseEvent) {
-  if (!isDragging) return;
+  const win = getCurrentWindow();
   
-  const deltaX = e.screenX - startX;
-  const deltaY = e.screenY - startY;
+  // 记录拖拽开始时的鼠标位置和窗口位置
+  dragStartX.value = e.screenX;
+  dragStartY.value = e.screenY;
   
-  if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-    const win = getCurrentWindow();
-    const position = await win.outerPosition();
-    const { LogicalPosition } = await import("@tauri-apps/api/dpi");
-    await win.setPosition(
-      new LogicalPosition(position.x + deltaX, position.y + deltaY)
-    );
-    
-    startX = e.screenX;
-    startY = e.screenY;
+  const startPosition = await win.outerPosition();
+  dragStartWindowX.value = startPosition.x;
+  dragStartWindowY.value = startPosition.y;
+  
+  // 使用 Tauri 的内置拖拽功能
+  try {
+    await win.startDragging();
+  } catch (error) {
+    // 拖拽结束或被取消
   }
-}
-
-// 鼠标松开停止拖拽
-function handleMouseUp(e: MouseEvent) {
-  if (!isDragging) return;
   
-  const deltaX = Math.abs(e.screenX - startX);
-  const deltaY = Math.abs(e.screenY - startY);
+  // 拖拽结束后，检查窗口位置是否真的改变了
+  const endPosition = await win.outerPosition();
+  const windowMoved = Math.abs(endPosition.x - dragStartWindowX.value) > 3 || 
+                      Math.abs(endPosition.y - dragStartWindowY.value) > 3;
   
-  isDragging = false;
-  
-  // 如果移动距离很小，认为是点击
-  if (deltaX < 5 && deltaY < 5) {
+  // 只有窗口没有移动时，才视为点击
+  if (!windowMoved) {
     handleClick();
   }
 }
@@ -163,9 +152,6 @@ onMounted(async () => {
     }
   );
   
-  // 添加全局鼠标事件监听
-  document.addEventListener("mousemove", handleMouseMove);
-  document.addEventListener("mouseup", handleMouseUp);
 });
 </script>
 
