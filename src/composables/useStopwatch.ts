@@ -16,6 +16,7 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
 
   let intervalId: number | null = null;
   let lastTick = 0; // 上一次 tick 的时间戳（ms）
+  let breakEndTriggered = false; // 标记休息结束回调是否已触发
 
   function clearTimer() {
     if (intervalId !== null) {
@@ -72,11 +73,13 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     breakTargetMs.value = targetMs;
     elapsedMs.value = 0;
     isRunning.value = true;
+    breakEndTriggered = false; // 重置标志
     ensureIntervalRunning();
     
     // 检查是否超过目标时长
     const checkBreakEnd = () => {
-      if (mode.value === "break" && elapsedMs.value >= breakTargetMs.value) {
+      if (mode.value === "break" && elapsedMs.value >= breakTargetMs.value && !breakEndTriggered) {
+        breakEndTriggered = true; // 标记已触发
         // 触发回调
         if (callbacks?.onBreakEnd) {
           callbacks.onBreakEnd();
@@ -103,6 +106,7 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     clearTimer();
     elapsedMs.value = 0;
     mode.value = "work";
+    breakEndTriggered = false; // 重置标志
   }
 
   /**
