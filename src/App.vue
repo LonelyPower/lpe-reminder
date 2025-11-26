@@ -77,14 +77,6 @@ const timer = useTimer({
       // 最后获取焦点
       await win.setFocus();
     }, "Show and focus window on work end");
-
-    // 2. 播放提示音
-    if (settings.enableworkSound) {
-      await safeExecute(async () => {
-        await playAudio("/notification-piano.mp3", 0.5);
-      }, "Play work end sound");
-    }
-
     // 3. 发送系统通知
     if (settings.enableNotification) {
       await safeExecute(async () => {
@@ -103,6 +95,14 @@ const timer = useTimer({
         }
       }, "Send work end notification");
     }
+    // 2. 播放提示音
+    if (settings.enableworkSound) {
+      await safeExecute(async () => {
+        await playAudio("/notification-piano.mp3", 0.5);
+      }, "Play work end sound");
+    }
+
+
   },
   onBreakEnd: async () => {
     // 0. 保存休息记录（使用实际休息时长）
