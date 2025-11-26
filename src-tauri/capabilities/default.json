@@ -21,6 +21,9 @@
     "core:event:allow-listen",
     "notification:default",
     "core:tray:default",
-    "core:menu:default"
+    "core:menu:default",
+    "sql:default",
+    "sql:allow-execute",
+    "sql:allow-select"
   ]
 }

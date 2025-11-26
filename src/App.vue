@@ -15,13 +15,14 @@ import HistoryPanel from "./components/HistoryPanel.vue";
 import StopwatchCompleteDialog from "./components/StopwatchCompleteDialog.vue";
 import { useTimer } from "./composables/useTimer";
 import { useStopwatch } from "./composables/useStopwatch";
-import { useSettings } from "./composables/useSettings";
-import { useTimerHistory } from "./composables/useTimerHistory";
+import { useSettings } from "./composables/useSettingsDB";
+import { useTimerHistory } from "./composables/useTimerHistoryDB";
 import { watch, onMounted, onBeforeUnmount } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 import { playAudio, preloadAudio } from "./utils/audioPlayer";
+import { initDatabase, migrateFromLocalStorage } from "./utils/database";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
@@ -270,6 +271,22 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 
 onMounted(async () => {
   const appWindow = getCurrentWindow();
+  
+  // 初始化数据库并迁移数据
+  try {
+    await initDatabase();
+    console.log("✓ Database initialized");
+    
+    // 检查是否需要从 localStorage 迁移数据
+    const hasOldData = localStorage.getItem("lpe-reminder-settings") || 
+                       localStorage.getItem("lpe-reminder-history");
+    if (hasOldData) {
+      console.log("Found old localStorage data, starting migration...");
+      await migrateFromLocalStorage();
+    }
+  } catch (error) {
+    console.error("Database initialization failed:", error);
+  }
   
   // 预加载音频文件
   preloadAudio(["/notification-piano.mp3", "/notification-chime.mp3"]);
