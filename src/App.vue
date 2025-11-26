@@ -340,31 +340,29 @@ onMounted(async () => {
   });
 
   // 同步托盘图标状态（保存停止函数）
-  const stopTrayIconWatch = watch(
-    () => [
-      settings.timerMode,
-      timer.mode.value, 
-      timer.isRunning.value,
-      stopwatch.mode.value,
-      stopwatch.isRunning.value,
-      stopwatch.elapsedMs.value
-    ],
-    () => {
-      let state = "idle";
-      if (settings.timerMode === "countdown") {
-        if (timer.mode.value === "work") {
-          state = timer.isRunning.value ? "working" : "paused";
-        } else if (timer.mode.value === "break") {
-          state = "break";
-        }
-      } else {
-        // 正计时模式
-        if (stopwatch.mode.value === "break") {
-          state = "break"; // 休息中
-        } else if (stopwatch.elapsedMs.value > 0 || stopwatch.isRunning.value) {
-          state = stopwatch.isRunning.value ? "working" : "paused";
-        }
+  // 使用 computed 避免频繁触发
+  const trayIconState = computed(() => {
+    let state = "idle";
+    if (settings.timerMode === "countdown") {
+      if (timer.mode.value === "work") {
+        state = timer.isRunning.value ? "working" : "paused";
+      } else if (timer.mode.value === "break") {
+        state = "break";
       }
+    } else {
+      // 正计时模式
+      if (stopwatch.mode.value === "break") {
+        state = "break"; // 休息中
+      } else if (stopwatch.elapsedMs.value > 0 || stopwatch.isRunning.value) {
+        state = stopwatch.isRunning.value ? "working" : "paused";
+      }
+    }
+    return state;
+  });
+
+  const stopTrayIconWatch = watch(
+    trayIconState,
+    (state) => {
       console.log("[Tray] Updating icon state to:", state);
       safeInvoke("set_tray_icon", { state });
     },
