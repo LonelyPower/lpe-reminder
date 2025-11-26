@@ -14,31 +14,41 @@ import { useTimer } from "./composables/useTimer";
 import { useSettings } from "./composables/useSettings";
 import { watch, onMounted } from "vue";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
+import { safeInvoke, safeExecute } from "./utils/errorHandler";
+import { minutesSecondsToMs } from "./utils/timeUtils";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
 const { settings } = useSettings();
 
 const timer = useTimer({
-  workDurationMs:
-    (settings.workDurationMinutes * 60 + settings.workDurationSeconds) * 1000,
-  breakDurationMs:
-    (settings.breakDurationMinutes * 60 + settings.breakDurationSeconds) * 1000,
+  workDurationMs: minutesSecondsToMs(
+    settings.workDurationMinutes,
+    settings.workDurationSeconds
+  ),
+  breakDurationMs: minutesSecondsToMs(
+    settings.breakDurationMinutes,
+    settings.breakDurationSeconds
+  ),
   onWorkEnd: async () => {
-    try {
-      // 1. 窗口置顶并获取焦点
-      const win = getCurrentWindow();
+    // 1. 窗口置顶并获取焦点
+    const win = getCurrentWindow();
+    await safeExecute(async () => {
       await win.setAlwaysOnTop(true);
       await win.setFocus();
+    }, "Set window always on top");
 
-      if (settings.enableworkSound) {
+    // 2. 播放提示音
+    if (settings.enableworkSound) {
+      await safeExecute(async () => {
         const audio = new Audio("/notification-piano.mp3");
-        audio.play();
-      }
-      
-      // 2. 发送系统通知
-      if (settings.enableNotification) {
+        await audio.play();
+      }, "Play work end sound");
+    }
+
+    // 3. 发送系统通知
+    if (settings.enableNotification) {
+      await safeExecute(async () => {
         let permissionGranted = await isPermissionGranted();
         if (!permissionGranted) {
           const permission = await requestPermission();
@@ -52,22 +62,22 @@ const timer = useTimer({
             sound: "default",
           });
         }
-      }
-    } catch (e) {
-      console.error("Failed to handle work end:", e);
+      }, "Send work end notification");
     }
   },
   onBreakEnd: async () => {
-    try {
-      const win = getCurrentWindow();
+    // 1. 取消窗口置顶
+    const win = getCurrentWindow();
+    await safeExecute(async () => {
       await win.setAlwaysOnTop(false);
+    }, "Cancel window always on top");
 
-      if (settings.enablerestSound) {
+    // 2. 播放提示音
+    if (settings.enablerestSound) {
+      await safeExecute(async () => {
         const audio = new Audio("/notification-chime.mp3");
-        audio.play();
-      }
-    } catch (e) {
-      console.error("Failed to reset window top:", e);
+        await audio.play();
+      }, "Play break end sound");
     }
   },
 });
@@ -82,8 +92,8 @@ watch(
   ],
   ([newWorkMin, newWorkSec, newBreakMin, newBreakSec]) => {
     timer.updateDurations(
-      ((newWorkMin as number) * 60 + (newWorkSec as number)) * 1000,
-      ((newBreakMin as number) * 60 + (newBreakSec as number)) * 1000
+      minutesSecondsToMs(newWorkMin as number, newWorkSec as number),
+      minutesSecondsToMs(newBreakMin as number, newBreakSec as number)
     );
   }
 );
@@ -104,8 +114,8 @@ function closeSettings() {
 function handleReset() {
   // 强制从 settings 更新一次 duration，确保重置时使用最新配置
   timer.updateDurations(
-    (settings.workDurationMinutes * 60 + settings.workDurationSeconds) * 1000,
-    (settings.breakDurationMinutes * 60 + settings.breakDurationSeconds) * 1000
+    minutesSecondsToMs(settings.workDurationMinutes, settings.workDurationSeconds),
+    minutesSecondsToMs(settings.breakDurationMinutes, settings.breakDurationSeconds)
   );
   timer.reset();
 }
@@ -113,6 +123,7 @@ function handleReset() {
 async function handleCloseConfirm(minimize: boolean, remember: boolean) {
   console.log("[CloseConfirm] minimize:", minimize, "remember:", remember);
   showCloseConfirm.value = false;
+  
   if (remember) {
     settings.closeBehavior = minimize ? "minimize" : "quit";
     console.log("[CloseConfirm] Saved closeBehavior:", settings.closeBehavior);
@@ -120,20 +131,14 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 
   if (minimize) {
     console.log("[CloseConfirm] Hiding window...");
-    try {
+    await safeExecute(async () => {
       await getCurrentWindow().hide();
       console.log("[CloseConfirm] Window hidden successfully");
-    } catch (e) {
-      console.error("[CloseConfirm] Failed to hide window:", e);
-    }
+    }, "Hide window on close");
   } else {
     console.log("[CloseConfirm] Exiting app...");
-    try {
-      await invoke("app_exit");
-      console.log("[CloseConfirm] App exit called successfully");
-    } catch (e) {
-      console.error("[CloseConfirm] Failed to exit app:", e);
-    }
+    await safeInvoke("app_exit");
+    console.log("[CloseConfirm] App exit called");
   }
 }
 
@@ -155,9 +160,11 @@ onMounted(async () => {
   });
   await listen("tray-settings", async () => {
     console.log("[Tray] Settings event received");
-    await appWindow.show();
-    await appWindow.setFocus();
-    showSettings.value = true;
+    await safeExecute(async () => {
+      await appWindow.show();
+      await appWindow.setFocus();
+      showSettings.value = true;
+    }, "Show settings from tray");
   });
 
   // 处理窗口关闭请求
@@ -168,22 +175,16 @@ onMounted(async () => {
     const behavior = settings.closeBehavior;
     if (behavior === "quit") {
       console.log("[CloseRequested] Exiting app...");
-      try {
-        await invoke("app_exit");
-        console.log("[CloseRequested] App exit successful");
-      } catch (e) {
-        console.error("[CloseRequested] Failed to exit:", e);
-      }
+      await safeInvoke("app_exit");
+      console.log("[CloseRequested] App exit called");
       return;
     }
     if (behavior === "minimize") {
       console.log("[CloseRequested] Hiding window...");
-      try {
+      await safeExecute(async () => {
         await appWindow.hide();
         console.log("[CloseRequested] Window hidden successfully");
-      } catch (e) {
-        console.error("[CloseRequested] Failed to hide window:", e);
-      }
+      }, "Hide window on close request");
       return;
     }
 
@@ -203,7 +204,7 @@ onMounted(async () => {
         state = "break";
       }
       console.log("[Tray] Updating icon state to:", state);
-      invoke("set_tray_icon", { state });
+      safeInvoke("set_tray_icon", { state });
     },
     { immediate: true } // 立即执行一次，确保初始状态正确
   );

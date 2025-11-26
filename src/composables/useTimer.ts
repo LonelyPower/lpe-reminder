@@ -134,7 +134,11 @@ export function useTimer(options: UseTimerOptions = {}) {
   const totalDurationMs = computed(() => currentTotalDurationMs.value);
 
   onBeforeUnmount(() => {
+    // 清理定时器
     clearTimer();
+    // 重置所有状态，防止内存泄漏
+    isRunning.value = false;
+    mode.value = "idle";
   });
 
   return {
