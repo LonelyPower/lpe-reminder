@@ -9,11 +9,15 @@ import {
 import TimerPanel from "./components/TimerPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
+import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
 import { useTimer } from "./composables/useTimer";
 import { useSettings } from "./composables/useSettings";
-import { watch } from "vue";
+import { watch, onMounted } from "vue";
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 
 const showSettings = ref(false);
+const showCloseConfirm = ref(false);
 const { settings } = useSettings();
 
 const timer = useTimer({
@@ -105,6 +109,59 @@ function handleReset() {
   );
   timer.reset();
 }
+
+function handleCloseConfirm(minimize: boolean, remember: boolean) {
+  showCloseConfirm.value = false;
+  if (remember) {
+    settings.closeBehavior = minimize ? "minimize" : "quit";
+  }
+
+  if (minimize) {
+    getCurrentWindow().hide();
+  } else {
+    invoke("app_exit");
+  }
+}
+
+onMounted(async () => {
+  const appWindow = getCurrentWindow();
+
+  // 监听托盘菜单事件（如果需要）
+  await listen("tray-start", () => timer.start());
+  await listen("tray-pause", () => timer.pause());
+  await listen("tray-reset", () => handleReset());
+
+  // 处理窗口关闭请求
+  await appWindow.onCloseRequested(async (event) => {
+    const behavior = settings.closeBehavior;
+    if (behavior === "quit") {
+      return; // 让窗口关闭
+    }
+    if (behavior === "minimize") {
+      event.preventDefault();
+      await appWindow.hide();
+      return;
+    }
+
+    // behavior === 'ask'
+    event.preventDefault();
+    showCloseConfirm.value = true;
+  });
+
+  // 同步托盘图标状态
+  watch(
+    () => [timer.mode.value, timer.isRunning.value],
+    () => {
+      let state = "idle";
+      if (timer.mode.value === "work") {
+        state = timer.isRunning.value ? "working" : "paused";
+      } else if (timer.mode.value === "break") {
+        state = "break";
+      }
+      invoke("set_tray_icon", { state });
+    }
+  );
+});
 </script>
 
 <template>
@@ -135,6 +192,10 @@ function handleReset() {
     />
 
     <SettingsDialog :visible="showSettings" @close="closeSettings" />
+    <CloseConfirmDialog
+      :visible="showCloseConfirm"
+      @confirm="handleCloseConfirm"
+    />
   </main>
 </template>
 

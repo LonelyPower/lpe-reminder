@@ -8,6 +8,7 @@ export interface AppSettings {
   enableworkSound: boolean;
   enablerestSound: boolean;
   enableNotification: boolean;
+  closeBehavior: "ask" | "minimize" | "quit";
 }
 
 const STORAGE_KEY = "lpe-reminder-settings";
@@ -20,6 +21,7 @@ const defaultSettings: AppSettings = {
   enableworkSound: true,
   enablerestSound: true,
   enableNotification: true,
+  closeBehavior: "ask",
 };
 
 // 1. 初始化：尝试从 localStorage 读取，失败则使用默认值

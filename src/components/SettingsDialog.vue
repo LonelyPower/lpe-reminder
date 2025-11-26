@@ -111,6 +111,17 @@ function handleResetLocal() {
               <span>启用系统通知</span>
             </label>
           </div>
+
+          <div class="form-group">
+            <label>
+              <span>关闭窗口时</span>
+              <select v-model="localSettings.closeBehavior" class="select-input">
+                <option value="ask">询问</option>
+                <option value="minimize">最小化到托盘</option>
+                <option value="quit">退出应用</option>
+              </select>
+            </label>
+          </div>
         </section>
         <footer class="dialog-footer">
           <button type="button" class="ghost" @click="handleResetLocal">
@@ -198,6 +209,20 @@ function handleResetLocal() {
   width: 18px;
   height: 18px;
   cursor: pointer;
+}
+
+.select-input {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.select-input:hover {
+  border-color: #9ca3af;
 }
 
 .dialog-footer {

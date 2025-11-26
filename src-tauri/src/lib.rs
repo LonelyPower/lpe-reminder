@@ -10,6 +10,24 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+#[tauri::command]
+fn set_tray_icon(app: tauri::AppHandle, state: &str) {
+    if let Some(tray) = app.tray_by_id("tray") {
+        let _ = tray.set_tooltip(Some(format!("LPE Reminder: {}", state)));
+        // TODO: 实现根据状态切换图标
+        // match state {
+        //     "working" => tray.set_icon(...),
+        //     "paused" => tray.set_icon(...),
+        //     _ => tray.set_icon(...),
+        // }
+    }
+}
+
+#[tauri::command]
+fn app_exit(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -48,7 +66,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, set_tray_icon, app_exit])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
