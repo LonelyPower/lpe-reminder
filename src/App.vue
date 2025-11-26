@@ -16,6 +16,7 @@ import { watch, onMounted, onBeforeUnmount } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
+import { playAudio, preloadAudio } from "./utils/audioPlayer";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
@@ -50,14 +51,7 @@ const timer = useTimer({
     // 2. 播放提示音
     if (settings.enableworkSound) {
       await safeExecute(async () => {
-        const audio = new Audio("/notification-piano.mp3");
-        try {
-          await audio.play();
-        } finally {
-          // 清理 audio 对象
-          audio.src = "";
-          audio.load();
-        }
+        await playAudio("/notification-piano.mp3", 0.5);
       }, "Play work end sound");
     }
 
@@ -90,14 +84,7 @@ const timer = useTimer({
     // 2. 播放提示音
     if (settings.enablerestSound) {
       await safeExecute(async () => {
-        const audio = new Audio("/notification-chime.mp3");
-        try {
-          await audio.play();
-        } finally {
-          // 清理 audio 对象
-          audio.src = "";
-          audio.load();
-        }
+        await playAudio("/notification-chime.mp3", 0.5);
       }, "Play break end sound");
     }
   },
@@ -165,6 +152,9 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 
 onMounted(async () => {
   const appWindow = getCurrentWindow();
+  
+  // 预加载音频文件
+  preloadAudio(["/notification-piano.mp3", "/notification-chime.mp3"]);
 
   // 监听托盘菜单事件（保存清理函数）
   unlistenFns.value.push(
