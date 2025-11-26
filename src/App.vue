@@ -10,10 +10,17 @@ import TimerPanel from "./components/TimerPanel.vue";
 import BreakOverlay from "./components/BreakOverlay.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import { useTimer } from "./composables/useTimer";
+import { useSettings } from "./composables/useSettings";
+import { watch } from "vue";
 
 const showSettings = ref(false);
+const { settings } = useSettings();
 
 const timer = useTimer({
+  workDurationMs:
+    (settings.workDurationMinutes * 60 + settings.workDurationSeconds) * 1000,
+  breakDurationMs:
+    (settings.breakDurationMinutes * 60 + settings.breakDurationSeconds) * 1000,
   onWorkEnd: async () => {
     try {
       // 1. 窗口置顶并获取焦点
@@ -21,22 +28,26 @@ const timer = useTimer({
       await win.setAlwaysOnTop(true);
       await win.setFocus();
 
-      const audio = new Audio("/notification-piano.mp3");
-      audio.play();
+      if (settings.enableworkSound) {
+        const audio = new Audio("/notification-piano.mp3");
+        audio.play();
+      }
       
       // 2. 发送系统通知
-      let permissionGranted = await isPermissionGranted();
-      if (!permissionGranted) {
-        const permission = await requestPermission();
-        permissionGranted = permission === "granted";
-      }
+      if (settings.enableNotification) {
+        let permissionGranted = await isPermissionGranted();
+        if (!permissionGranted) {
+          const permission = await requestPermission();
+          permissionGranted = permission === "granted";
+        }
 
-      if (permissionGranted) {
-        sendNotification({
-          title: "休息时间到！",
-          body: "工作辛苦了，起来活动一下吧！",
-          sound: "default",
-        });
+        if (permissionGranted) {
+          sendNotification({
+            title: "休息时间到！",
+            body: "工作辛苦了，起来活动一下吧！",
+            sound: "default",
+          });
+        }
       }
     } catch (e) {
       console.error("Failed to handle work end:", e);
@@ -47,13 +58,31 @@ const timer = useTimer({
       const win = getCurrentWindow();
       await win.setAlwaysOnTop(false);
 
-      const audio = new Audio("/notification-chime.mp3");
-      audio.play();
+      if (settings.enablerestSound) {
+        const audio = new Audio("/notification-chime.mp3");
+        audio.play();
+      }
     } catch (e) {
       console.error("Failed to reset window top:", e);
     }
   },
 });
+
+// 监听设置变化，动态更新计时器配置
+watch(
+  () => [
+    settings.workDurationMinutes,
+    settings.workDurationSeconds,
+    settings.breakDurationMinutes,
+    settings.breakDurationSeconds,
+  ],
+  ([newWorkMin, newWorkSec, newBreakMin, newBreakSec]) => {
+    timer.updateDurations(
+      ((newWorkMin as number) * 60 + (newWorkSec as number)) * 1000,
+      ((newBreakMin as number) * 60 + (newBreakSec as number)) * 1000
+    );
+  }
+);
 
 const breakVisible = computed(() => timer.mode.value === "break");
 const breakRemainingSeconds = computed(() =>
@@ -66,6 +95,15 @@ function openSettings() {
 
 function closeSettings() {
   showSettings.value = false;
+}
+
+function handleReset() {
+  // 强制从 settings 更新一次 duration，确保重置时使用最新配置
+  timer.updateDurations(
+    (settings.workDurationMinutes * 60 + settings.workDurationSeconds) * 1000,
+    (settings.breakDurationMinutes * 60 + settings.breakDurationSeconds) * 1000
+  );
+  timer.reset();
 }
 </script>
 
@@ -86,7 +124,7 @@ function closeSettings() {
       :is-running="timer.isRunning.value"
       @start="timer.start()"
       @pause="timer.pause()"
-      @reset="timer.reset()"
+      @reset="handleReset"
       @skip-break="timer.skipBreak()"
     />
 
