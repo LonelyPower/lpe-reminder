@@ -1,5 +1,5 @@
 import { reactive, watch } from "vue";
-import { initDatabase, getCurrentUser, getDatabase } from "../utils/database";
+import { initDatabase, getSettings, saveSetting } from "../utils/database";
 
 export interface AppSettings {
   timerMode: "countdown" | "stopwatch";
@@ -40,7 +40,6 @@ export const defaultSettings: AppSettings = {
 };
 
 const settings = reactive<AppSettings>({ ...defaultSettings });
-let userId: number | null = null;
 let initialized = false;
 
 /**
@@ -49,13 +48,7 @@ let initialized = false;
 async function loadSettings() {
   try {
     await initDatabase();
-    userId = await getCurrentUser();
-    const db = getDatabase();
-    
-    const rows = await db.select<Array<{ key: string; value: string }>>(
-      "SELECT key, value FROM settings WHERE user_id = $1",
-      [userId]
-    );
+    const rows = await getSettings();
     
     // 应用数据库中的设置
     for (const row of rows) {
@@ -80,18 +73,9 @@ async function loadSettings() {
  * 保存设置到数据库
  */
 async function saveSettings() {
-  if (!userId) return;
-  
   try {
-    const db = getDatabase();
-    const now = Date.now();
-    
     for (const [key, value] of Object.entries(settings)) {
-      await db.execute(
-        `INSERT OR REPLACE INTO settings (user_id, key, value, updated_at) 
-         VALUES ($1, $2, $3, $4)`,
-        [userId, key, JSON.stringify(value), now]
-      );
+      await saveSetting(key, JSON.stringify(value));
     }
     
     console.log("✓ Settings saved to database");

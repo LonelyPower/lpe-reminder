@@ -1,13 +1,115 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, image::Image,
+    Emitter, Manager, image::Image, State,
 };
+use std::sync::Mutex;
+
+mod db;
+use db::{Database, TimerRecord};
+
+// Database state wrapper
+pub struct AppState {
+    pub db: Mutex<Database>,
+    pub current_user_id: Mutex<Option<i64>>,
+}
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+// ==================== Database Commands ====================
+
+#[tauri::command]
+fn db_init_user(device_id: String, state: State<AppState>) -> Result<db::User, String> {
+    let db = state.db.lock().unwrap();
+    let user = db.get_or_create_user(&device_id).map_err(|e| e.to_string())?;
+    
+    // 缓存当前用户 ID
+    let mut current_user = state.current_user_id.lock().unwrap();
+    *current_user = Some(user.id);
+    
+    Ok(user)
+}
+
+#[tauri::command]
+fn db_update_phone(phone: Option<String>, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.update_user_phone(user_id, phone).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_get_user(state: State<AppState>) -> Result<db::User, String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.get_user_by_id(user_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_get_settings(state: State<AppState>) -> Result<Vec<db::Setting>, String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.get_settings(user_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_setting(key: String, value: String, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.save_setting(user_id, &key, &value).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_settings_batch(settings: Vec<(String, String)>, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.save_settings_batch(user_id, settings).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_get_timer_records(limit: i64, state: State<AppState>) -> Result<Vec<TimerRecord>, String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.get_timer_records(user_id, limit).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_add_timer_record(record: TimerRecord, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.add_timer_record(&record).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_timer_record(record_id: String, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.delete_timer_record(user_id, &record_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_clear_timer_records(state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.clear_timer_records(user_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -62,7 +164,7 @@ fn set_tray_icon(app: tauri::AppHandle, state: &str) {
         // 遍历所有路径，找到第一个存在的文件
         let mut icon_loaded = false;
         for icon_path in &possible_paths {
-            println!("Trying icon path: {:?}", icon_path);
+            // println!("Trying icon path: {:?}", icon_path);
             
             if icon_path.exists() {
                 match image::open(icon_path) {
@@ -155,10 +257,27 @@ fn resize_floating_window(app: tauri::AppHandle, width: f64, height: f64) -> Res
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            // 初始化数据库
+            let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");
+            std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
+            
+            let db_path = app_data_dir.join("lpe_reminder.db");
+            println!("Database path: {:?}", db_path);
+            
+            let database = Database::new(db_path).expect("Failed to initialize database");
+            
+            // 设置全局状态
+            app.manage(AppState {
+                db: Mutex::new(database),
+                current_user_id: Mutex::new(None),
+            });
+            
+            println!("✓ Database initialized successfully");
+            
+
             // 创建托盘菜单项
             let start_i = MenuItem::with_id(app, "start", "开始工作", true, None::<&str>)?;
             let pause_i = MenuItem::with_id(app, "pause", "暂停", true, None::<&str>)?;
@@ -221,7 +340,17 @@ pub fn run() {
             app_exit,
             toggle_floating_window,
             show_tray_menu_at_cursor,
-            resize_floating_window
+            resize_floating_window,
+            db_init_user,
+            db_update_phone,
+            db_get_user,
+            db_get_settings,
+            db_save_setting,
+            db_save_settings_batch,
+            db_get_timer_records,
+            db_add_timer_record,
+            db_delete_timer_record,
+            db_clear_timer_records
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

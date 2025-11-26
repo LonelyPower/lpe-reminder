@@ -1,5 +1,11 @@
 import { ref } from "vue";
-import { initDatabase, getCurrentUser, getDatabase } from "../utils/database";
+import { 
+  initDatabase, 
+  getTimerRecords as getRecordsDB,
+  addTimerRecord as addRecordDB,
+  deleteTimerRecord as deleteRecordDB,
+  clearTimerRecords as clearRecordsDB
+} from "../utils/database";
 
 export interface TimerRecord {
   id: string;
@@ -12,7 +18,6 @@ export interface TimerRecord {
 }
 
 const records = ref<TimerRecord[]>([]);
-let userId: number | null = null;
 let initialized = false;
 
 /**
@@ -21,29 +26,11 @@ let initialized = false;
 async function loadRecords(): Promise<void> {
   try {
     await initDatabase();
-    userId = await getCurrentUser();
-    const db = getDatabase();
-    
-    const rows = await db.select<Array<{
-      id: string;
-      type: string;
-      mode: string | null;
-      name: string | null;
-      start_time: number;
-      end_time: number;
-      duration: number;
-    }>>(
-      `SELECT id, type, mode, name, start_time, end_time, duration 
-       FROM timer_records 
-       WHERE user_id = $1 
-       ORDER BY end_time DESC 
-       LIMIT 100`,
-      [userId]
-    );
+    const rows = await getRecordsDB(100);
     
     records.value = rows.map(row => ({
       id: row.id,
-      type: row.type as "countdown" | "stopwatch",
+      type: row.record_type as "countdown" | "stopwatch",
       mode: row.mode as "work" | "break" | undefined,
       name: row.name || undefined,
       startTime: row.start_time,
@@ -55,59 +42,6 @@ async function loadRecords(): Promise<void> {
   } catch (error) {
     console.error("Failed to load records from database:", error);
     records.value = [];
-  }
-}
-
-/**
- * 保存记录到数据库
- */
-async function saveRecord(record: TimerRecord): Promise<void> {
-  if (!userId) return;
-  
-  try {
-    const db = getDatabase();
-    const now = Date.now();
-    
-    await db.execute(
-      `INSERT INTO timer_records 
-       (id, user_id, type, mode, name, start_time, end_time, duration, created_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
-        record.id,
-        userId,
-        record.type,
-        record.mode || null,
-        record.name || null,
-        record.startTime,
-        record.endTime,
-        record.duration,
-        now
-      ]
-    );
-    
-    console.log("✓ Record saved to database:", record.id);
-  } catch (error) {
-    console.error("Failed to save record to database:", error);
-  }
-}
-
-/**
- * 从数据库删除记录
- */
-async function deleteRecordFromDB(id: string): Promise<void> {
-  if (!userId) return;
-  
-  try {
-    const db = getDatabase();
-    
-    await db.execute(
-      "DELETE FROM timer_records WHERE id = $1 AND user_id = $2",
-      [id, userId]
-    );
-    
-    console.log("✓ Record deleted from database:", id);
-  } catch (error) {
-    console.error("Failed to delete record from database:", error);
   }
 }
 
@@ -136,7 +70,18 @@ export function useTimerHistory() {
     }
     
     // 保存到数据库
-    saveRecord(newRecord);
+    addRecordDB({
+      id: newRecord.id,
+      record_type: newRecord.type,
+      mode: newRecord.mode || null,
+      name: newRecord.name || null,
+      start_time: newRecord.startTime,
+      end_time: newRecord.endTime,
+      duration: newRecord.duration,
+      created_at: Date.now(),
+    }).catch(error => {
+      console.error("Failed to save record to database:", error);
+    });
   }
 
   /**
@@ -146,7 +91,9 @@ export function useTimerHistory() {
     const index = records.value.findIndex((r) => r.id === id);
     if (index !== -1) {
       records.value.splice(index, 1);
-      deleteRecordFromDB(id);
+      deleteRecordDB(id).catch(error => {
+        console.error("Failed to delete record from database:", error);
+      });
     }
   }
 
@@ -154,15 +101,8 @@ export function useTimerHistory() {
    * 清空所有记录
    */
   async function clearRecords() {
-    if (!userId) return;
-    
     try {
-      const db = getDatabase();
-      await db.execute(
-        "DELETE FROM timer_records WHERE user_id = $1",
-        [userId]
-      );
-      
+      await clearRecordsDB();
       records.value = [];
       console.log("✓ All records cleared from database");
     } catch (error) {
