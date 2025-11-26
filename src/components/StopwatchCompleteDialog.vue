@@ -39,14 +39,14 @@ function handleConfirm() {
   });
   // 重置状态
   workName.value = "";
-  takeBreak.value = false;
+//   takeBreak.value = false;
 }
 
 function handleCancel() {
   emit("cancel");
   // 重置状态
   workName.value = "";
-  takeBreak.value = false;
+//   takeBreak.value = false;
 }
 </script>
 

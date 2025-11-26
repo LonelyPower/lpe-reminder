@@ -5,13 +5,12 @@ interface Props {
   visible: boolean;
   elapsedMs: number; // 已过时长(毫秒)
   targetMs: number; // 目标时长(毫秒)
-  showTips?: boolean; // 是否显示护眼提示（倒计时模式使用）
+  isCountdown?: boolean; // 是否为倒计时模式（显示护眼提示）
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: "skip"): void;
   (e: "end"): void;
 }>();
 
@@ -54,8 +53,8 @@ function getProgress(elapsed: number, target: number): number {
             <div class="target">/ {{ formatTime(targetMs) }}</div>
           </div>
 
-          <!-- 护眼提示 -->
-          <p v-if="showTips" class="eye-tips">
+          <!-- 护眼提示（仅倒计时模式显示） -->
+          <p  class="eye-tips">
             💡 闭目轻轻转动眼球，缓解干涩与疲劳
           </p>
 
@@ -73,9 +72,6 @@ function getProgress(elapsed: number, target: number): number {
           </div>
 
           <div class="actions">
-            <button type="button" class="btn btn-secondary" @click="emit('skip')">
-              跳过休息
-            </button>
             <button type="button" class="btn btn-primary" @click="emit('end')">
               结束休息
             </button>

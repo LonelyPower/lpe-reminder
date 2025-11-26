@@ -103,27 +103,8 @@ const timer = useTimer({
     }
   },
   onBreakEnd: async () => {
-    // 0. 保存休息记录
-    const endTime = Date.now();
-    const breakDuration = minutesSecondsToMs(
-      settings.breakDurationMinutes,
-      settings.breakDurationSeconds
-    );
-    addRecord({
-      type: "countdown",
-      mode: "break",
-      startTime: endTime - breakDuration,
-      endTime: endTime,
-      duration: breakDuration,
-    });
-
-    // 1. 取消窗口置顶
-    const win = getCurrentWindow();
-    await safeExecute(async () => {
-      await win.setAlwaysOnTop(false);
-    }, "Cancel window always on top");
-
-    // 2. 播放提示音
+    // 仅在首次到达目标时间时触发（播放音乐）
+    // 记录保存移至 handleCountdownBreakEnd
     if (settings.enablerestSound) {
       await safeExecute(async () => {
         await playAudio("/notification-chime.mp3", 0.5);
@@ -220,6 +201,31 @@ function handleStopwatchComplete(data: { name: string; takeBreak: boolean }) {
     stopwatch.startBreak(breakDuration);
     console.log("[Stopwatch] Break started:", breakDuration, "ms");
   }
+}
+
+// 处理倒计时休息结束
+async function handleCountdownBreakEnd() {
+  const endTime = Date.now();
+  const actualBreakDuration = timer.breakElapsedMs.value; // 使用实际休息时长
+  
+  // 保存休息记录
+  addRecord({
+    type: "countdown",
+    mode: "break",
+    startTime: endTime - actualBreakDuration,
+    endTime: endTime,
+    duration: actualBreakDuration,
+  });
+  console.log("[Countdown] Break record saved:", actualBreakDuration, "ms");
+  
+  // 取消窗口置顶
+  const win = getCurrentWindow();
+  await safeExecute(async () => {
+    await win.setAlwaysOnTop(false);
+  }, "Cancel window always on top");
+  
+  // 结束休息
+  timer.skipBreak();
 }
 
 // 处理正计时休息结束
@@ -581,12 +587,7 @@ onBeforeUnmount(() => {
     <BreakOverlay
       v-if="settings.timerMode === 'countdown'"
       :visible="breakVisible"
-      :elapsed-ms="
-        minutesSecondsToMs(
-          settings.breakDurationMinutes,
-          settings.breakDurationSeconds
-        ) - timer.remainingMs.value
-      "
+      :elapsed-ms="timer.breakElapsedMs.value"
       :target-ms="
         minutesSecondsToMs(
           settings.breakDurationMinutes,
@@ -594,7 +595,7 @@ onBeforeUnmount(() => {
         )
       "
       :is-countdown="true"
-      @end="timer.skipBreak()"
+      @end="handleCountdownBreakEnd"
     />
 
     <!-- 正计时休息遮罩 -->

@@ -26,9 +26,12 @@ export function useTimer(options: UseTimerOptions = {}) {
   const currentTotalDurationMs = ref(workDurationMs.value);
   const cycleCount = ref(0);
   const isRunning = ref(false);
+  const breakStartTime = ref(0); // 休息开始时间戳
+  const breakElapsedMs = ref(0); // 休息已过时长（用于超时计时）
 
   let intervalId: number | null = null;
   let lastTick = 0; // 上一次 tick 的时间戳（ms）
+  let breakEndTriggered = false; // 标记休息结束回调是否已触发
 
   function updateDurations(newWorkMs: number, newBreakMs: number) {
     workDurationMs.value = newWorkMs;
@@ -55,6 +58,9 @@ export function useTimer(options: UseTimerOptions = {}) {
     } else if (next === "break") {
       remainingMs.value = breakDurationMs.value;
       currentTotalDurationMs.value = breakDurationMs.value;
+      breakStartTime.value = Date.now();
+      breakElapsedMs.value = 0;
+      breakEndTriggered = false; // 重置标志
     } else {
       remainingMs.value = 0;
       currentTotalDurationMs.value = 0;
@@ -65,24 +71,27 @@ export function useTimer(options: UseTimerOptions = {}) {
     if (!isRunning.value) return;
     const delta = now - lastTick;
     lastTick = now;
-    remainingMs.value = Math.max(0, remainingMs.value - delta);
-
-    if (remainingMs.value <= 0) {
-      // 当前阶段结束，自动切换
-      if (mode.value === "work") {
+    
+    if (mode.value === "work") {
+      // 工作模式：正常倒计时
+      remainingMs.value = Math.max(0, remainingMs.value - delta);
+      if (remainingMs.value <= 0) {
         // 工作结束 -> 进入休息
         cycleCount.value += 1;
+        breakStartTime.value = Date.now();
+        breakElapsedMs.value = 0;
         setMode("break");
         options.onWorkEnd?.();
-      } else if (mode.value === "break") {
-        // 休息结束 -> 回到工作
-        setMode("work");
+      }
+    } else if (mode.value === "break") {
+      // 休息模式：允许超时继续计时
+      remainingMs.value = Math.max(0, remainingMs.value - delta);
+      breakElapsedMs.value += delta;
+      
+      // 仅在首次到达目标时间时触发回调（播放音乐等）
+      if (remainingMs.value <= 0 && !breakEndTriggered) {
+        breakEndTriggered = true;
         options.onBreakEnd?.();
-      } else {
-        // idle 理论上不会走到这里
-        isRunning.value = false;
-        clearTimer();
-        return;
       }
     }
   }
@@ -147,6 +156,8 @@ export function useTimer(options: UseTimerOptions = {}) {
     cycleCount,
     isRunning,
     totalDurationMs,
+    breakStartTime,
+    breakElapsedMs,
     start,
     pause,
     reset,
