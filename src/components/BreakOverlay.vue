@@ -35,64 +35,63 @@ function getProgress(elapsed: number, target: number): number {
 </script>
 
 <template>
-  <teleport to="body">
-    <Transition name="overlay-fade">
-      <div v-if="visible" class="overlay">
-        <div class="overlay-content">
-          <div class="icon-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          </div>
+  <Transition name="overlay-fade">
+    <div v-if="visible" class="overlay">
+      <div class="overlay-content">
+        <div class="icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
 
-          <h1 class="title">休息时间</h1>
+        <h1 class="title">休息时间</h1>
 
-          <div class="timer-display">
-            <div class="time">{{ formatTime(elapsedMs) }}</div>
-            <div class="target">/ {{ formatTime(targetMs) }}</div>
-          </div>
+        <div class="timer-display">
+          <div class="time">{{ formatTime(elapsedMs) }}</div>
+          <div class="target">/ {{ formatTime(targetMs) }}</div>
+        </div>
 
-          <!-- 护眼提示（仅倒计时模式显示） -->
-          <p class="eye-tips">
-            💡 闭目轻轻转动眼球，缓解干涩与疲劳
-          </p>
+        <!-- 护眼提示（仅倒计时模式显示） -->
+        <p class="eye-tips">
+          💡 闭目轻轻转动眼球，缓解干涩与疲劳
+        </p>
 
-          <div v-if="!isOvertime" class="progress-bar">
-            <div class="progress-fill" :style="{ width: getProgress(elapsedMs, targetMs) + '%' }"></div>
-          </div>
+        <div v-if="!isOvertime" class="progress-bar">
+          <div class="progress-fill" :style="{ width: getProgress(elapsedMs, targetMs) + '%' }"></div>
+        </div>
 
-          <div v-if="isOvertime" class="overtime-notice">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <span>已超过建议休息时长</span>
-          </div>
+        <div v-if="isOvertime" class="overtime-notice">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>已超过建议休息时长</span>
+        </div>
 
-          <div class="actions">
-            <button type="button" class="btn btn-primary" @click="emit('end')">
-              结束休息
-            </button>
-          </div>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" @click="emit('end')">
+            结束休息
+          </button>
         </div>
       </div>
-    </Transition>
-  </teleport>
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
 .overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  background: #F5F7F5;
+  background: rgba(245, 247, 245, 0.8);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 100;
   padding: 20px;
 }
 

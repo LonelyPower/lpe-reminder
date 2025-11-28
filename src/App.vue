@@ -759,6 +759,7 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .app-header {
@@ -768,6 +769,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 8px;
+  position: relative;
+  z-index: 50;
 }
 
 .app-title {
