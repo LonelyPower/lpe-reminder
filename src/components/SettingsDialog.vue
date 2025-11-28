@@ -46,18 +46,10 @@ function handleResetLocal() {
         <header class="dialog-header">
           <h2>设置</h2>
           <div class="tabs">
-            <button 
-              class="tab-btn" 
-              :class="{ active: activeTab === 'general' }"
-              @click="activeTab = 'general'"
-            >
+            <button class="tab-btn" :class="{ active: activeTab === 'general' }" @click="activeTab = 'general'">
               常规设置
             </button>
-            <button 
-              class="tab-btn" 
-              :class="{ active: activeTab === 'account' }"
-              @click="activeTab = 'account'"
-            >
+            <button class="tab-btn" :class="{ active: activeTab === 'account' }" @click="activeTab = 'account'">
               账号信息
             </button>
           </div>
@@ -67,7 +59,7 @@ function handleResetLocal() {
           <div v-show="activeTab === 'account'" class="tab-content">
             <UserInfoSection />
           </div>
-          
+
           <!-- 常规设置区域 -->
           <div v-show="activeTab === 'general'" class="tab-content">
             <!-- 计时设置 -->
@@ -87,21 +79,11 @@ function handleResetLocal() {
                 <label>
                   <span>工作时长</span>
                   <div class="time-inputs">
-                    <input
-                      type="number"
-                      v-model.number="localSettings.workDurationMinutes"
-                      min="0"
-                      max="120"
-                      placeholder="分"
-                    />
+                    <input type="number" v-model.number="localSettings.workDurationMinutes" min="0" max="120"
+                      placeholder="分" />
                     <span class="unit">分</span>
-                    <input
-                      type="number"
-                      v-model.number="localSettings.workDurationSeconds"
-                      min="0"
-                      max="59"
-                      placeholder="秒"
-                    />
+                    <input type="number" v-model.number="localSettings.workDurationSeconds" min="0" max="59"
+                      placeholder="秒" />
                     <span class="unit">秒</span>
                   </div>
                 </label>
@@ -111,21 +93,11 @@ function handleResetLocal() {
                 <label>
                   <span>休息时长</span>
                   <div class="time-inputs">
-                    <input
-                      type="number"
-                      v-model.number="localSettings.breakDurationMinutes"
-                      min="0"
-                      max="60"
-                      placeholder="分"
-                    />
+                    <input type="number" v-model.number="localSettings.breakDurationMinutes" min="0" max="60"
+                      placeholder="分" />
                     <span class="unit">分</span>
-                    <input
-                      type="number"
-                      v-model.number="localSettings.breakDurationSeconds"
-                      min="0"
-                      max="59"
-                      placeholder="秒"
-                    />
+                    <input type="number" v-model.number="localSettings.breakDurationSeconds" min="0" max="59"
+                      placeholder="秒" />
                     <span class="unit">秒</span>
                   </div>
                 </label>
@@ -135,21 +107,11 @@ function handleResetLocal() {
                 <label>
                   <span>正计时休息时长</span>
                   <div class="time-inputs">
-                    <input
-                      type="number"
-                      v-model.number="localSettings.stopwatchBreakMinutes"
-                      min="0"
-                      max="60"
-                      placeholder="分"
-                    />
+                    <input type="number" v-model.number="localSettings.stopwatchBreakMinutes" min="0" max="60"
+                      placeholder="分" />
                     <span class="unit">分</span>
-                    <input
-                      type="number"
-                      v-model.number="localSettings.stopwatchBreakSeconds"
-                      min="0"
-                      max="59"
-                      placeholder="秒"
-                    />
+                    <input type="number" v-model.number="localSettings.stopwatchBreakSeconds" min="0" max="59"
+                      placeholder="秒" />
                     <span class="unit">秒</span>
                   </div>
                 </label>
@@ -159,13 +121,11 @@ function handleResetLocal() {
             <!-- 通知与音效 -->
             <div class="settings-section">
               <h3 class="section-title">通知与音效</h3>
-              <div class="form-group checkbox-group">
+              <div class="form-group checkbox-group checkbox-row">
                 <label>
                   <input type="checkbox" v-model="localSettings.enableworkSound" />
                   <span>启用工作结束提示音</span>
                 </label>
-              </div>
-              <div class="form-group checkbox-group">
                 <label>
                   <input type="checkbox" v-model="localSettings.enablerestSound" />
                   <span>启用休息结束提示音</span>
@@ -181,9 +141,9 @@ function handleResetLocal() {
 
             <!-- 悬浮窗 -->
             <div class="settings-section">
-              <h3 class="section-title">悬浮窗</h3>
-              <div class="form-group checkbox-group">
-                <label>
+              <div class="section-header">
+                <h3 class="section-title-inline">悬浮窗</h3>
+                <label class="header-checkbox">
                   <input type="checkbox" v-model="localSettings.enableFloatingWindow" />
                   <span>启用悬浮窗</span>
                 </label>
@@ -194,38 +154,28 @@ function handleResetLocal() {
                   <label>
                     <span>悬浮窗大小</span>
                     <div class="time-inputs">
-                      <input
-                        type="number"
-                        v-model.number="localSettings.floatingWindowWidth"
-                        min="100"
-                        max="400"
-                        placeholder="宽度"
-                      />
+                      <input type="number" v-model.number="localSettings.floatingWindowWidth" min="100" max="400"
+                        placeholder="宽度" />
                       <span class="unit">×</span>
-                      <input
-                        type="number"
-                        v-model.number="localSettings.floatingWindowHeight"
-                        min="40"
-                        max="200"
-                        placeholder="高度"
-                      />
+                      <input type="number" v-model.number="localSettings.floatingWindowHeight" min="40" max="200"
+                        placeholder="高度" />
                       <span class="unit">像素</span>
                     </div>
                   </label>
                 </div>
 
-                <div class="form-group checkbox-group">
+                <div class="form-group checkbox-group checkbox-row">
                   <label>
                     <input type="checkbox" v-model="localSettings.floatingWindowShowTimer" />
                     <span>悬浮窗显示计时器</span>
                   </label>
-                </div>
-                <div class="form-group checkbox-group">
                   <label>
                     <input type="checkbox" v-model="localSettings.floatingWindowShowState" />
                     <span>悬浮窗显示状态</span>
                   </label>
                 </div>
+
+
               </template>
             </div>
 
@@ -333,7 +283,8 @@ function handleResetLocal() {
   margin-bottom: 24px;
   overflow-y: auto;
   flex: 1;
-  padding-right: 4px; /* 避免滚动条遮挡内容 */
+  padding-right: 4px;
+  /* 避免滚动条遮挡内容 */
 }
 
 .tab-content {
@@ -359,6 +310,38 @@ function handleResetLocal() {
   margin: 0 0 4px 0;
   padding-bottom: 8px;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.section-title-inline {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+.header-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.header-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 .form-group label {
@@ -399,6 +382,13 @@ function handleResetLocal() {
   width: 18px;
   height: 18px;
   cursor: pointer;
+}
+
+.checkbox-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 24px;
 }
 
 .select-input {
