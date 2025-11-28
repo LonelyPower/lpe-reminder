@@ -20,6 +20,8 @@ export interface AppSettings {
   floatingWindowShowState: boolean;
   floatingWindowX?: number;
   floatingWindowY?: number;
+  windowWidth?: number;
+  windowHeight?: number;
 }
 
 export const defaultSettings: AppSettings = {
@@ -41,6 +43,8 @@ export const defaultSettings: AppSettings = {
   floatingWindowShowState: true,
   floatingWindowX: undefined,
   floatingWindowY: undefined,
+  windowWidth: 800,
+  windowHeight: 600,
 };
 
 const settings = reactive<AppSettings>({ ...defaultSettings });

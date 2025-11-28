@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import {
   isPermissionGranted,
   requestPermission,
@@ -271,6 +271,23 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 
 onMounted(async () => {
   const appWindow = getCurrentWindow();
+
+  // 定义保存窗口尺寸的函数
+  const saveWindowSize = async () => {
+    try {
+      const size = await appWindow.innerSize();
+      const factor = await appWindow.scaleFactor();
+      const logicalSize = size.toLogical(factor);
+      
+      settings.windowWidth = logicalSize.width;
+      settings.windowHeight = logicalSize.height;
+      
+      await saveSetting("windowWidth", logicalSize.width.toString());
+      await saveSetting("windowHeight", logicalSize.height.toString());
+    } catch (e) {
+      console.error("Failed to save window size", e);
+    }
+  };
   
   // 初始化数据库并迁移数据
   try {
@@ -283,6 +300,15 @@ onMounted(async () => {
     if (hasOldData) {
       console.log("Found old localStorage data, starting migration...");
       await migrateFromLocalStorage();
+    }
+
+    // 恢复上次关闭时的窗口尺寸
+    if (settings.windowWidth && settings.windowHeight) {
+      try {
+        await appWindow.setSize(new LogicalSize(settings.windowWidth, settings.windowHeight));
+      } catch (e) {
+        console.error("Failed to restore window size", e);
+      }
     }
   } catch (error) {
     console.error("Database initialization failed:", error);
@@ -335,6 +361,9 @@ onMounted(async () => {
   unlistenFns.value.push(
     await listen("tray-quit", async () => {
       console.log("[Tray] Quit event received");
+      // 保存窗口尺寸
+      await saveWindowSize();
+      
       // 保存悬浮窗位置
       if (settings.enableFloatingWindow) {
           try {
@@ -359,6 +388,9 @@ onMounted(async () => {
     console.log("[CloseRequested] Triggered, behavior:", settings.closeBehavior);
     event.preventDefault(); // 始终阻止默认行为
     
+    // 保存窗口尺寸
+    await saveWindowSize();
+
     // 保存悬浮窗位置
     if (settings.enableFloatingWindow) {
         try {
