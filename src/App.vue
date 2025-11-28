@@ -715,7 +715,7 @@ body {
     border-radius: 16px; /* 圆角 */
   overflow: hidden;
   box-sizing: border-box;
-  /* display: flex; */
+  display: flex;
   flex-direction: column;
 }
 
