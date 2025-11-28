@@ -36,7 +36,7 @@ function getProgress(elapsed: number, target: number): number {
 
 <template>
   <Transition name="overlay-fade">
-    <div v-if="visible" class="overlay">
+    <div v-if="visible" class="overlay" data-tauri-drag-region>
       <div class="overlay-content">
         <div class="icon-wrapper">
           <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
