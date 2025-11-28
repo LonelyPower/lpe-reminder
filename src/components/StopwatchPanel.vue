@@ -72,13 +72,18 @@ function onPrimaryClick() {
 
 <style scoped>
 .stopwatch-panel {
-  max-width: 420px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   padding: 32px 24px;
   border-radius: 24px;
   background: #FFFFFF;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .subtitle {

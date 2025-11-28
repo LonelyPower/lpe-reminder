@@ -162,16 +162,21 @@ function handleClearAll() {
 
 <style scoped>
 .history-panel {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 20px 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .stats-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .stat-card {
@@ -220,6 +225,10 @@ function handleClearAll() {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .section-header {
@@ -227,6 +236,7 @@ function handleClearAll() {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .section-header h3 {
@@ -255,6 +265,11 @@ function handleClearAll() {
   text-align: center;
   padding: 40px 20px;
   color: #9ca3af;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .empty-state svg {
@@ -271,8 +286,9 @@ function handleClearAll() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 400px;
+  flex: 1;
   overflow-y: auto;
+  max-height: none;
 }
 
 .record-item {

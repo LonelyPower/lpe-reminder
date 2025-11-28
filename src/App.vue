@@ -601,8 +601,8 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="app-root">
-    <header class="app-header">
-      <h1 class="app-title">LPE Reminder</h1>
+    <header class="app-header" data-tauri-drag-region>
+      <h1 class="app-title" data-tauri-drag-region>LPE Reminder</h1>
       <button type="button" class="settings-btn" @click="openSettings" aria-label="设置">
         设置
       </button>
@@ -695,18 +695,33 @@ onBeforeUnmount(() => {
   </main>
 </template>
 
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden; /* 防止出现滚动条 */
+}
+</style>
+
 <style scoped>
 .app-root {
-  min-height: 100vh;
-  padding: 24px 16px 40px;
+ height: 100vh;
+  padding: 12px;
   background-color: #F5F7F5;
   color: #374151;
   font-family: system-ui, -apple-system, sans-serif;
+    border-radius: 16px; /* 圆角 */
+  overflow: hidden;
+  box-sizing: border-box;
+  /* display: flex; */
+  flex-direction: column;
 }
 
 .app-header {
-  max-width: 480px;
-  margin: 0 auto 24px;
+  max-width: 100%;
+  margin: 0 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -746,8 +761,8 @@ onBeforeUnmount(() => {
 }
 
 .tabs {
-  max-width: 480px;
-  margin: 0 auto 24px;
+  max-width: 100%;
+  margin: 0 0 16px;
   display: flex;
   padding: 4px;
   background: #E5E7EB;
@@ -776,6 +791,14 @@ onBeforeUnmount(() => {
   color: #059669;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   font-weight: 600;
+}
+
+.tab-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
 }
 
 .tab-content {
