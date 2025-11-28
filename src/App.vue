@@ -672,11 +672,11 @@ onBeforeUnmount(() => {
     <div v-show="activeTab === 'timer'" class="tab-content">
       <TimerPanel
         v-if="settings.timerMode === 'countdown'"
-        :mode="timer.mode.value"
-        :remaining-ms="timer.remainingMs.value"
+        :mode="timer.mode.value === 'break' ? 'idle' : timer.mode.value"
+        :remaining-ms="timer.mode.value === 'break' ? minutesSecondsToMs(settings.workDurationMinutes, settings.workDurationSeconds) : timer.remainingMs.value"
         :cycle-count="timer.cycleCount.value"
         :total-duration-ms="timer.totalDurationMs.value"
-        :is-running="timer.isRunning.value"
+        :is-running="timer.mode.value === 'break' ? false : timer.isRunning.value"
         @start="timer.start()"
         @pause="timer.pause()"
         @reset="handleReset"
@@ -685,8 +685,8 @@ onBeforeUnmount(() => {
 
       <StopwatchPanel
         v-if="settings.timerMode === 'stopwatch'"
-        :elapsed-ms="stopwatch.elapsedMs.value"
-        :is-running="stopwatch.isRunning.value"
+        :elapsed-ms="stopwatch.mode.value === 'break' ? 0 : stopwatch.elapsedMs.value"
+        :is-running="stopwatch.mode.value === 'break' ? false : stopwatch.isRunning.value"
         @start="stopwatch.start()"
         @pause="stopwatch.pause()"
         @stop="stopwatch.stop()"

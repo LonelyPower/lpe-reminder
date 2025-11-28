@@ -86,7 +86,7 @@ function getProgress(elapsed: number, target: number): number {
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(245, 247, 245, 0.8);
+  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
