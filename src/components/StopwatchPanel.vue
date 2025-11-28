@@ -79,7 +79,7 @@ function onPrimaryClick() {
   background: #FFFFFF;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   text-align: center;
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;

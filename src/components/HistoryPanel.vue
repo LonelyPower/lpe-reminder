@@ -166,6 +166,7 @@ function handleClearAll() {
   margin: 0;
   padding: 0;
   height: 100%;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
   gap: 16px;
