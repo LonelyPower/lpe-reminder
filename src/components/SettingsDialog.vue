@@ -70,159 +70,178 @@ function handleResetLocal() {
           
           <!-- 常规设置区域 -->
           <div v-show="activeTab === 'general'" class="tab-content">
-            <div class="form-group">
-              <label>
-                <span>计时器模式</span>
-                <select v-model="localSettings.timerMode" class="select-input">
-                  <option value="countdown">倒计时模式</option>
-                  <option value="stopwatch">正计时模式</option>
-                </select>
-              </label>
+            <!-- 计时设置 -->
+            <div class="settings-section">
+              <h3 class="section-title">计时设置</h3>
+              <div class="form-group">
+                <label>
+                  <span>计时器模式</span>
+                  <select v-model="localSettings.timerMode" class="select-input">
+                    <option value="countdown">倒计时模式</option>
+                    <option value="stopwatch">正计时模式</option>
+                  </select>
+                </label>
+              </div>
+
+              <div v-if="localSettings.timerMode === 'countdown'" class="form-group">
+                <label>
+                  <span>工作时长</span>
+                  <div class="time-inputs">
+                    <input
+                      type="number"
+                      v-model.number="localSettings.workDurationMinutes"
+                      min="0"
+                      max="120"
+                      placeholder="分"
+                    />
+                    <span class="unit">分</span>
+                    <input
+                      type="number"
+                      v-model.number="localSettings.workDurationSeconds"
+                      min="0"
+                      max="59"
+                      placeholder="秒"
+                    />
+                    <span class="unit">秒</span>
+                  </div>
+                </label>
+              </div>
+
+              <div v-if="localSettings.timerMode === 'countdown'" class="form-group">
+                <label>
+                  <span>休息时长</span>
+                  <div class="time-inputs">
+                    <input
+                      type="number"
+                      v-model.number="localSettings.breakDurationMinutes"
+                      min="0"
+                      max="60"
+                      placeholder="分"
+                    />
+                    <span class="unit">分</span>
+                    <input
+                      type="number"
+                      v-model.number="localSettings.breakDurationSeconds"
+                      min="0"
+                      max="59"
+                      placeholder="秒"
+                    />
+                    <span class="unit">秒</span>
+                  </div>
+                </label>
+              </div>
+
+              <div v-if="localSettings.timerMode === 'stopwatch'" class="form-group">
+                <label>
+                  <span>正计时休息时长</span>
+                  <div class="time-inputs">
+                    <input
+                      type="number"
+                      v-model.number="localSettings.stopwatchBreakMinutes"
+                      min="0"
+                      max="60"
+                      placeholder="分"
+                    />
+                    <span class="unit">分</span>
+                    <input
+                      type="number"
+                      v-model.number="localSettings.stopwatchBreakSeconds"
+                      min="0"
+                      max="59"
+                      placeholder="秒"
+                    />
+                    <span class="unit">秒</span>
+                  </div>
+                </label>
+              </div>
             </div>
 
-            <div v-if="localSettings.timerMode === 'countdown'" class="form-group">
-              <label>
-                <span>工作时长</span>
-                <div class="time-inputs">
-                  <input
-                    type="number"
-                    v-model.number="localSettings.workDurationMinutes"
-                    min="0"
-                    max="120"
-                    placeholder="分"
-                  />
-                  <span class="unit">分</span>
-                  <input
-                    type="number"
-                    v-model.number="localSettings.workDurationSeconds"
-                    min="0"
-                    max="59"
-                    placeholder="秒"
-                  />
-                  <span class="unit">秒</span>
+            <!-- 通知与音效 -->
+            <div class="settings-section">
+              <h3 class="section-title">通知与音效</h3>
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" v-model="localSettings.enableworkSound" />
+                  <span>启用工作结束提示音</span>
+                </label>
+              </div>
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" v-model="localSettings.enablerestSound" />
+                  <span>启用休息结束提示音</span>
+                </label>
+              </div>
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" v-model="localSettings.enableNotification" />
+                  <span>启用系统通知</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 悬浮窗 -->
+            <div class="settings-section">
+              <h3 class="section-title">悬浮窗</h3>
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" v-model="localSettings.enableFloatingWindow" />
+                  <span>启用悬浮窗</span>
+                </label>
+              </div>
+
+              <template v-if="localSettings.enableFloatingWindow">
+                <div class="form-group">
+                  <label>
+                    <span>悬浮窗大小</span>
+                    <div class="time-inputs">
+                      <input
+                        type="number"
+                        v-model.number="localSettings.floatingWindowWidth"
+                        min="100"
+                        max="400"
+                        placeholder="宽度"
+                      />
+                      <span class="unit">×</span>
+                      <input
+                        type="number"
+                        v-model.number="localSettings.floatingWindowHeight"
+                        min="40"
+                        max="200"
+                        placeholder="高度"
+                      />
+                      <span class="unit">像素</span>
+                    </div>
+                  </label>
                 </div>
-              </label>
-            </div>
 
-            <div v-if="localSettings.timerMode === 'countdown'" class="form-group">
-              <label>
-                <span>休息时长</span>
-                <div class="time-inputs">
-                  <input
-                    type="number"
-                    v-model.number="localSettings.breakDurationMinutes"
-                    min="0"
-                    max="60"
-                    placeholder="分"
-                  />
-                  <span class="unit">分</span>
-                  <input
-                    type="number"
-                    v-model.number="localSettings.breakDurationSeconds"
-                    min="0"
-                    max="59"
-                    placeholder="秒"
-                  />
-                  <span class="unit">秒</span>
+                <div class="form-group checkbox-group">
+                  <label>
+                    <input type="checkbox" v-model="localSettings.floatingWindowShowTimer" />
+                    <span>悬浮窗显示计时器</span>
+                  </label>
                 </div>
-              </label>
-            </div>
-
-            <div v-if="localSettings.timerMode === 'stopwatch'" class="form-group">
-              <label>
-                <span>正计时休息时长</span>
-                <div class="time-inputs">
-                  <input
-                    type="number"
-                    v-model.number="localSettings.stopwatchBreakMinutes"
-                    min="0"
-                    max="60"
-                    placeholder="分"
-                  />
-                  <span class="unit">分</span>
-                  <input
-                    type="number"
-                    v-model.number="localSettings.stopwatchBreakSeconds"
-                    min="0"
-                    max="59"
-                    placeholder="秒"
-                  />
-                  <span class="unit">秒</span>
+                <div class="form-group checkbox-group">
+                  <label>
+                    <input type="checkbox" v-model="localSettings.floatingWindowShowState" />
+                    <span>悬浮窗显示状态</span>
+                  </label>
                 </div>
-              </label>
+              </template>
             </div>
 
-            <div class="form-group checkbox-group">
-              <label>
-                <input type="checkbox" v-model="localSettings.enableworkSound" />
-                <span>启用工作结束提示音</span>
-              </label>
-            </div>
-            <div class="form-group checkbox-group">
-              <label>
-                <input type="checkbox" v-model="localSettings.enablerestSound" />
-                <span>启用休息结束提示音</span>
-              </label>
-            </div>
-            <div class="form-group checkbox-group">
-              <label>
-                <input type="checkbox" v-model="localSettings.enableNotification" />
-                <span>启用系统通知</span>
-              </label>
-            </div>
-            <div class="form-group checkbox-group">
-              <label>
-                <input type="checkbox" v-model="localSettings.enableFloatingWindow" />
-                <span>启用悬浮窗</span>
-              </label>
-            </div>
-
-            <div v-if="localSettings.enableFloatingWindow" class="form-group">
-              <label>
-                <span>悬浮窗大小</span>
-                <div class="time-inputs">
-                  <input
-                    type="number"
-                    v-model.number="localSettings.floatingWindowWidth"
-                    min="100"
-                    max="400"
-                    placeholder="宽度"
-                  />
-                  <span class="unit">×</span>
-                  <input
-                    type="number"
-                    v-model.number="localSettings.floatingWindowHeight"
-                    min="40"
-                    max="200"
-                    placeholder="高度"
-                  />
-                  <span class="unit">像素</span>
-                </div>
-              </label>
-            </div>
-
-            <div v-if="localSettings.enableFloatingWindow" class="form-group checkbox-group">
-              <label>
-                <input type="checkbox" v-model="localSettings.floatingWindowShowTimer" />
-                <span>悬浮窗显示计时器</span>
-              </label>
-            </div>
-            <div v-if="localSettings.enableFloatingWindow" class="form-group checkbox-group">
-              <label>
-                <input type="checkbox" v-model="localSettings.floatingWindowShowState" />
-                <span>悬浮窗显示状态</span>
-              </label>
-            </div>
-
-            <div class="form-group">
-              <label>
-                <span>关闭窗口时</span>
-                <select v-model="localSettings.closeBehavior" class="select-input">
-                  <option value="ask">询问</option>
-                  <option value="minimize">最小化到托盘</option>
-                  <option value="quit">退出应用</option>
-                </select>
-              </label>
+            <!-- 系统 -->
+            <div class="settings-section">
+              <h3 class="section-title">系统</h3>
+              <div class="form-group">
+                <label>
+                  <span>关闭窗口时</span>
+                  <select v-model="localSettings.closeBehavior" class="select-input">
+                    <option value="ask">询问</option>
+                    <option value="minimize">最小化到托盘</option>
+                    <option value="quit">退出应用</option>
+                  </select>
+                </label>
+              </div>
             </div>
           </div>
         </section>
@@ -321,6 +340,25 @@ function handleResetLocal() {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.settings-section {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 4px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .form-group label {
