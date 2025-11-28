@@ -174,6 +174,11 @@ function openSettings() {
   showSettings.value = true;
 }
 
+function closeApp() {
+  const win = getCurrentWindow();
+  win.close();
+}
+
 function closeSettings() {
   showSettings.value = false;
 }
@@ -635,9 +640,14 @@ onBeforeUnmount(() => {
   <main class="app-root">
     <header class="app-header" data-tauri-drag-region>
       <h1 class="app-title" data-tauri-drag-region>LPE Reminder</h1>
-      <button type="button" class="settings-btn" @click="openSettings" aria-label="设置">
-        设置
-      </button>
+      <div class="header-actions">
+        <button type="button" class="icon-btn settings-btn" @click="openSettings" aria-label="设置">
+          设置
+        </button>
+        <button type="button" class="icon-btn close-btn" @click="closeApp" aria-label="关闭">
+          关闭
+        </button>
+      </div>
     </header>
 
     <div class="tabs">
@@ -767,7 +777,12 @@ body {
   letter-spacing: -0.025em;
 }
 
-.settings-btn {
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
   width: 36px;
   height: 36px;
   border-radius: 12px;
@@ -782,14 +797,24 @@ body {
   transition: all 0.2s;
 }
 
+.icon-btn:hover {
+  background: #D1D5DB;
+  color: #1F2937;
+}
+
 .settings-btn::before {
   content: "⚙️";
   font-size: 16px;
 }
 
-.settings-btn:hover {
-  background: #D1D5DB;
-  color: #1F2937;
+.close-btn::before {
+  content: "✕";
+  font-size: 16px;
+}
+
+.close-btn:hover {
+  background: #FEE2E2;
+  color: #EF4444;
 }
 
 .tabs {
