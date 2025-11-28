@@ -51,18 +51,18 @@ const displayTime = computed(() => {
 const stateColor = computed(() => {
   if (timerMode.value === "stopwatch") {
     // 正计时模式
-    if (mode.value === "break") return "#22c55e"; // 绿色 - 休息中
+    if (mode.value === "break") return "#059669"; // 绿色 - 休息中
     if (elapsedMs.value > 0 || isRunning.value) {
-      return isRunning.value ? "#10b981" : "#94a3b8"; // 绿色 - 计时中 / 灰色 - 暂停
+      return isRunning.value ? "#059669" : "#9CA3AF"; // 绿色 - 计时中 / 灰色 - 暂停
     }
-    return "#3b82f6"; // 蓝色 - 空闲
+    return "#6B7280"; // 灰色 - 空闲
   }
   // 倒计时模式
-  if (mode.value === "break") return "#22c55e"; // 绿色 - 休息中
+  if (mode.value === "break") return "#059669"; // 绿色 - 休息中
   if (mode.value === "work") {
-    return isRunning.value ? "#f59e0b" : "#94a3b8"; // 橙色 - 工作中 / 灰色 - 已暂停
+    return isRunning.value ? "#059669" : "#9CA3AF"; // 绿色 - 工作中 / 灰色 - 已暂停
   }
-  return "#3b82f6"; // 蓝色 - 空闲
+  return "#6B7280"; // 灰色 - 空闲
 });
 
 // 状态文本
@@ -206,22 +206,19 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 0 8px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
+  padding: 0 12px;
+  background: #FFFFFF;
   border-radius: 12px;
   user-select: none;
-  /* 使用inset阴影模拟边框效果 */
-  box-shadow: inset 0 0 0 2px var(--border-color, #3b82f6);
-  transition: box-shadow 0.3s ease;
-  --border-color: #3b82f6;
-  /* 确保圆角外部完全透明，避免阴影残留 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #E5E7EB;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .floating-window:hover {
-  background: rgba(255, 255, 255, 1);
-  box-shadow: inset 0 0 0 2px var(--border-color, #3b82f6);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
 }
 
 .time-display {
@@ -230,16 +227,15 @@ onMounted(async () => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: 2px;
-  font-weight: bold;
+  font-weight: 700;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
   transition: color 0.3s ease;
   cursor: pointer;
-  border-radius: 6px;
-  text-align: center;
   overflow: hidden;
+  text-align: center;
 }
 
 .time-text {
@@ -248,25 +244,19 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  text-align: center;
 }
 
 .state-text {
   font-size: 0.5em;
   opacity: 0.8;
-  font-weight: normal;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 500;
+  font-family: system-ui, -apple-system, sans-serif;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-}
-
-.time-display:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.time-display:active {
-  background: rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
 .drag-handle {
@@ -278,18 +268,15 @@ onMounted(async () => {
   flex-shrink: 0;
   height: 100%;
   cursor: move;
-  color: #9ca3af;
+  color: #9CA3AF;
   transition: color 0.2s;
-  border-radius: 4px;
 }
 
 .drag-handle:hover {
-  color: #6b7280;
-  background: rgba(0, 0, 0, 0.05);
+  color: #6B7280;
 }
 
 .drag-handle:active {
-  color: #4b5563;
-  background: rgba(0, 0, 0, 0.1);
+  color: #4B5563;
 }
 </style>

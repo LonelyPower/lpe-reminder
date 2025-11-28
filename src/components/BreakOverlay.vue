@@ -40,21 +40,22 @@ function getProgress(elapsed: number, target: number): number {
       <div v-if="visible" class="overlay">
         <div class="overlay-content">
           <div class="icon-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
           </div>
 
           <h1 class="title">休息时间</h1>
-          
+
           <div class="timer-display">
             <div class="time">{{ formatTime(elapsedMs) }}</div>
             <div class="target">/ {{ formatTime(targetMs) }}</div>
           </div>
 
           <!-- 护眼提示（仅倒计时模式显示） -->
-          <p  class="eye-tips">
+          <p class="eye-tips">
             💡 闭目轻轻转动眼球，缓解干涩与疲劳
           </p>
 
@@ -63,7 +64,8 @@ function getProgress(elapsed: number, target: number): number {
           </div>
 
           <div v-if="isOvertime" class="overtime-notice">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -86,8 +88,7 @@ function getProgress(elapsed: number, target: number): number {
 .overlay {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
-  backdrop-filter: blur(10px);
+  background: #F5F7F5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,31 +98,39 @@ function getProgress(elapsed: number, target: number): number {
 
 .overlay-content {
   text-align: center;
-  max-width: 500px;
+  max-width: 480px;
   width: 100%;
+  background: #FFFFFF;
+  padding: 40px;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .icon-wrapper {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 120px;
-  height: 120px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  margin-bottom: 32px;
+  background: #ECFDF5;
+  color: #059669;
+  margin-bottom: 24px;
   animation: pulse 2s ease-in-out infinite;
 }
 
 .icon-wrapper svg {
-  color: #ffffff;
+  color: #059669;
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 0.8;
@@ -129,11 +138,10 @@ function getProgress(elapsed: number, target: number): number {
 }
 
 .title {
-  font-size: 36px;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1F2937;
   margin: 0 0 24px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .timer-display {
@@ -141,38 +149,38 @@ function getProgress(elapsed: number, target: number): number {
   align-items: baseline;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .time {
   font-size: 64px;
   font-weight: 700;
-  color: #ffffff;
+  color: #059669;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  line-height: 1;
 }
 
 .target {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  color: #9CA3AF;
 }
 
 .eye-tips {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.95);
+  font-size: 15px;
+  color: #4B5563;
   text-align: center;
-  margin: 0 0 20px 0;
-  padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.15);
+  margin: 0 0 32px 0;
+  padding: 16px;
+  background: #F9FAFB;
   border-radius: 12px;
-  backdrop-filter: blur(5px);
+  border: 1px solid #E5E7EB;
 }
 
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.2);
+  background: #F3F4F6;
   border-radius: 999px;
   overflow: hidden;
   margin-bottom: 32px;
@@ -180,10 +188,9 @@ function getProgress(elapsed: number, target: number): number {
 
 .progress-fill {
   height: 100%;
-  background: #ffffff;
+  background: #059669;
   border-radius: 999px;
   transition: width 0.2s linear;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .overtime-notice {
@@ -192,20 +199,65 @@ function getProgress(elapsed: number, target: number): number {
   justify-content: center;
   gap: 8px;
   padding: 12px 20px;
-  background: rgba(251, 191, 36, 0.2);
-  border: 2px solid rgba(251, 191, 36, 0.5);
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
   border-radius: 12px;
-  color: #fef3c7;
+  color: #92400E;
   font-size: 14px;
   font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+}
+
+.btn {
+  padding: 12px 32px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+}
+
+.btn-primary:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.margin-bottom {
   margin-bottom: 32px;
   animation: shake 0.5s ease-in-out;
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 .overtime-notice svg {
