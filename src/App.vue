@@ -22,7 +22,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 import { playAudio, preloadAudio } from "./utils/audioPlayer";
-import { initDatabase, migrateFromLocalStorage } from "./utils/database";
+import { initDatabase, migrateFromLocalStorage, saveSetting } from "./utils/database";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
@@ -332,12 +332,46 @@ onMounted(async () => {
       }, "Show settings from tray");
     })
   );
+  unlistenFns.value.push(
+    await listen("tray-quit", async () => {
+      console.log("[Tray] Quit event received");
+      // 保存悬浮窗位置
+      if (settings.enableFloatingWindow) {
+          try {
+            const pos = await safeInvoke<[number, number]>("get_floating_window_position");
+            if (pos) {
+               settings.floatingWindowX = pos[0];
+               settings.floatingWindowY = pos[1];
+               // 强制保存到数据库
+               await saveSetting("floatingWindowX", pos[0].toString());
+               await saveSetting("floatingWindowY", pos[1].toString());
+            }
+          } catch (e) {
+            console.error("Failed to get floating window position", e);
+          }
+      }
+      await safeInvoke("app_exit");
+    })
+  );
 
   // 处理窗口关闭请求
   await appWindow.onCloseRequested(async (event) => {
     console.log("[CloseRequested] Triggered, behavior:", settings.closeBehavior);
     event.preventDefault(); // 始终阻止默认行为
     
+    // 保存悬浮窗位置
+    if (settings.enableFloatingWindow) {
+        try {
+          const pos = await safeInvoke<[number, number]>("get_floating_window_position");
+          if (pos) {
+             settings.floatingWindowX = pos[0];
+             settings.floatingWindowY = pos[1];
+          }
+        } catch (e) {
+          console.error("Failed to get floating window position", e);
+        }
+    }
+
     const behavior = settings.closeBehavior;
     if (behavior === "quit") {
       console.log("[CloseRequested] Exiting app...");
@@ -393,9 +427,30 @@ onMounted(async () => {
   // 监听悬浮窗开关，控制显示/隐藏
   const stopFloatingWindowWatch = watch(
     () => settings.enableFloatingWindow,
-    (enabled) => {
+    async (enabled) => {
       console.log("[FloatingWindow] Toggle:", enabled);
-      safeInvoke("toggle_floating_window", { show: enabled });
+      if (enabled) {
+        // 恢复位置
+        if (settings.floatingWindowX !== undefined && settings.floatingWindowY !== undefined) {
+           await safeInvoke("move_floating_window", { 
+             x: settings.floatingWindowX, 
+             y: settings.floatingWindowY 
+           });
+        }
+        safeInvoke("toggle_floating_window", { show: true });
+      } else {
+        // 保存位置
+        try {
+          const pos = await safeInvoke<[number, number]>("get_floating_window_position");
+          if (pos) {
+             settings.floatingWindowX = pos[0];
+             settings.floatingWindowY = pos[1];
+          }
+        } catch (e) {
+          console.error("Failed to get floating window position", e);
+        }
+        safeInvoke("toggle_floating_window", { show: false });
+      }
     },
     { immediate: true }
   );
