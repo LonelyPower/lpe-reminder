@@ -182,7 +182,7 @@ function getProgress(elapsed: number, target: number): number {
   height: 100%;
   background: #ffffff;
   border-radius: 999px;
-  transition: width 0.3s ease;
+  transition: width 0.2s linear;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 

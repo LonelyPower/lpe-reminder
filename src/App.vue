@@ -602,8 +602,8 @@ onBeforeUnmount(() => {
 <template>
   <main class="app-root">
     <header class="app-header">
-      <h1 class="app-title">护眼定时器（预览版）</h1>
-      <button type="button" class="settings-btn" @click="openSettings">
+      <h1 class="app-title">LPE Reminder</h1>
+      <button type="button" class="settings-btn" @click="openSettings" aria-label="设置">
         设置
       </button>
     </header>
@@ -699,77 +699,93 @@ onBeforeUnmount(() => {
 .app-root {
   min-height: 100vh;
   padding: 24px 16px 40px;
-  background: radial-gradient(circle at top left, #e0f2fe, #f9fafb);
+  background-color: #F5F7F5;
+  color: #374151;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
 .app-header {
-  max-width: 720px;
-  margin: 0 auto 12px;
+  max-width: 480px;
+  margin: 0 auto 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 8px;
 }
 
 .app-title {
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1F2937;
+  letter-spacing: -0.025em;
 }
 
 .settings-btn {
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  font-size: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: none;
+  background: #E5E7EB;
+  color: #4B5563;
+  font-size: 0; /* Hide text, use icon if possible, or just keep text small */
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.settings-btn::before {
+  content: "⚙️";
+  font-size: 16px;
 }
 
 .settings-btn:hover {
-  background: #f3f4f6;
+  background: #D1D5DB;
+  color: #1F2937;
 }
 
 .tabs {
-  max-width: 720px;
-  margin: 0 auto 20px;
+  max-width: 480px;
+  margin: 0 auto 24px;
   display: flex;
-  gap: 8px;
   padding: 4px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: #E5E7EB;
+  border-radius: 16px;
 }
 
 .tab-btn {
   flex: 1;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: #6B7280;
   font-size: 14px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .tab-btn:hover {
-  background: #f9fafb;
   color: #374151;
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  background: #FFFFFF;
+  color: #059669;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-weight: 600;
 }
 
 .tab-content {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;

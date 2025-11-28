@@ -55,7 +55,6 @@ function onPrimaryClick() {
 
 <template>
   <section class="timer-panel">
-    <h1 class="title">护眼定时器</h1>
     <p class="subtitle">
       当前状态：
       <strong>{{ statusLabel }}</strong>
@@ -82,7 +81,7 @@ function onPrimaryClick() {
         class="ghost"
         @click="emit('skip-break')"
       >
-        跳过本次休息
+        跳过
       </button>
     </div>
   </section>
@@ -91,86 +90,98 @@ function onPrimaryClick() {
 <style scoped>
 .timer-panel {
   max-width: 420px;
-  margin: 40px auto;
-  padding: 24px 20px 20px;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  margin: 0 auto;
+  padding: 32px 24px;
+  border-radius: 24px;
+  background: #FFFFFF;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   text-align: center;
-}
-
-.title {
-  font-size: 24px;
-  margin-bottom: 8px;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #666;
-  margin-bottom: 16px;
+  color: #6B7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.subtitle strong {
+  color: #059669;
 }
 
 .time-display {
-  font-size: 40px;
-  letter-spacing: 0.08em;
-  margin-bottom: 12px;
+  font-size: 64px;
+  font-weight: 700;
+  color: #1F2937;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 24px 0 32px;
 }
 
 .progress-bar {
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
-  background: #e5e7eb;
+  background: #F3F4F6;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .progress-inner {
   height: 100%;
   width: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, #38bdf8, #4ade80);
+  background: #059669;
   transition: width 0.2s linear;
 }
 
 .cycle {
   font-size: 13px;
-  color: #888;
-  margin-bottom: 16px;
+  color: #9CA3AF;
+  margin-bottom: 32px;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   justify-content: center;
 }
 
 .actions button {
-  min-width: 88px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 14px;
+  min-width: 96px;
+  padding: 10px 20px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: none;
+  transition: all 0.2s;
 }
 
 .primary {
-  background: #38bdf8;
+  background: #059669;
   color: #ffffff;
-  border-color: #0ea5e9;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
 }
 
 .primary:hover {
-  background: #0ea5e9;
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3);
+}
+
+.primary:active {
+  transform: translateY(0);
 }
 
 .ghost {
-  background: #ffffff;
-  color: #374151;
-  border-color: #d1d5db;
+  background: #F3F4F6;
+  color: #4B5563;
 }
 
 .ghost:hover {
-  background: #f3f4f6;
+  background: #E5E7EB;
+  color: #1F2937;
 }
 </style>
