@@ -55,6 +55,7 @@ export const defaultSettings: AppSettings = {
 
 const settings = reactive<AppSettings>({ ...defaultSettings });
 let initialized = false;
+let initPromise: Promise<void> | null = null;
 
 /**
  * 从数据库加载设置
@@ -114,12 +115,25 @@ function setupAutoSave() {
 }
 
 export function useSettings() {
-  // 初始化（仅执行一次）
-  if (!initialized) {
-    initialized = true;
-    loadSettings().then(() => {
-      setupAutoSave();
-    });
+  /**
+   * 初始化设置（可 await）
+   * 确保数据库设置加载完成
+   */
+  async function init(): Promise<void> {
+    // 如果已经初始化过，返回缓存的 Promise
+    if (initPromise) {
+      return initPromise;
+    }
+    
+    // 如果正在初始化，创建并缓存 Promise
+    if (!initialized) {
+      initialized = true;
+      initPromise = loadSettings().then(() => {
+        setupAutoSave();
+      });
+    }
+    
+    return initPromise || Promise.resolve();
   }
   
   function resetToDefault() {
@@ -128,6 +142,7 @@ export function useSettings() {
 
   return {
     settings,
+    init,
     defaultSettings,
     resetToDefault,
   };

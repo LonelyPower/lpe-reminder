@@ -358,29 +358,17 @@ onMounted(async () => {
       await migrateFromLocalStorage();
     }
 
-    // 3. 显式等待设置加载完成
-    // useSettings() 内部虽然调用了 loadSettings，但它是异步的且没有暴露 Promise
-    // 这里我们手动调用一次 loadSettings 确保数据已就绪
-    // 注意：由于 useSettings 是单例模式，我们需要一种机制来等待它加载完成
-    // 这里我们简单地通过轮询 settings.windowWidth 是否变化来判断（或者直接依赖 useSettings 的副作用）
-    
-    // 更可靠的方法是：在 App.vue 中直接调用数据库读取逻辑来获取窗口大小，或者改造 useSettings
-    // 这里我们采用直接读取数据库的方式来确保获取到最新的窗口尺寸
-    const { getSettings } = await import("./utils/database");
-    const rows = await getSettings();
-    let savedWidth = settings.windowWidth;
-    let savedHeight = settings.windowHeight;
-    let savedX = settings.windowX;
-    let savedY = settings.windowY;
-
-    for (const row of rows) {
-      if (row.key === "windowWidth") savedWidth = JSON.parse(row.value);
-      if (row.key === "windowHeight") savedHeight = JSON.parse(row.value);
-      if (row.key === "windowX") savedX = JSON.parse(row.value);
-      if (row.key === "windowY") savedY = JSON.parse(row.value);
-    }
+    // 3. 等待设置加载完成（解决竞态问题）
+    const { init: initSettings } = useSettings();
+    await initSettings();
+    console.log("✓ Settings loaded and ready");
 
     // 4. 恢复窗口尺寸和位置
+    const savedWidth = settings.windowWidth;
+    const savedHeight = settings.windowHeight;
+    const savedX = settings.windowX;
+    const savedY = settings.windowY;
+
     if (savedWidth && savedHeight) {
       console.log(`Restoring window size to ${savedWidth}x${savedHeight}`);
       try {
