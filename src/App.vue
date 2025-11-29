@@ -540,8 +540,13 @@ onMounted(async () => {
     if (!settings.enableFloatingWindow) return;
     
     await safeExecute(async () => {
+      const commonPayload = {
+        theme: settings.theme
+      };
+
       if (settings.timerMode === "countdown") {
         await appWindow.emit("timer-state-sync", {
+          ...commonPayload,
           mode: timer.mode.value,
           remainingMs: timer.remainingMs.value,
           isRunning: timer.isRunning.value,
@@ -549,6 +554,7 @@ onMounted(async () => {
         });
       } else {
         await appWindow.emit("timer-state-sync", {
+          ...commonPayload,
           mode: stopwatch.mode.value, // work 或 break
           elapsedMs: stopwatch.elapsedMs.value,
           isRunning: stopwatch.isRunning.value,

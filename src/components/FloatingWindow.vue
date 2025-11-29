@@ -47,22 +47,22 @@ const displayTime = computed(() => {
   return formatTime(remainingMs.value);
 });
 
-// 根据状态显示颜色
-const stateColor = computed(() => {
+// 根据状态返回 CSS 类名
+const statusClass = computed(() => {
   if (timerMode.value === "stopwatch") {
     // 正计时模式
-    if (mode.value === "break") return "#059669"; // 绿色 - 休息中
+    if (mode.value === "break") return "status-break";
     if (elapsedMs.value > 0 || isRunning.value) {
-      return isRunning.value ? "#059669" : "#9CA3AF"; // 绿色 - 计时中 / 灰色 - 暂停
+      return isRunning.value ? "status-working" : "status-paused";
     }
-    return "#6B7280"; // 灰色 - 空闲
+    return "status-idle";
   }
   // 倒计时模式
-  if (mode.value === "break") return "#059669"; // 绿色 - 休息中
+  if (mode.value === "break") return "status-break";
   if (mode.value === "work") {
-    return isRunning.value ? "#059669" : "#9CA3AF"; // 绿色 - 工作中 / 灰色 - 已暂停
+    return isRunning.value ? "status-working" : "status-paused";
   }
-  return "#6B7280"; // 灰色 - 空闲
+  return "status-idle";
 });
 
 // 状态文本
@@ -181,6 +181,11 @@ onMounted(async () => {
       const payload = event.payload;
       timerMode.value = payload.timerMode || "countdown";
       
+      // 同步主题
+      if (payload.theme) {
+        applyTheme(payload.theme);
+      }
+
       if (payload.timerMode === "stopwatch") {
         elapsedMs.value = payload.elapsedMs || 0;
         isRunning.value = payload.isRunning || false;
@@ -216,8 +221,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="floating-window" :style="{ '--border-color': stateColor }" @contextmenu="handleRightClick">
-    <div class="time-display" :style="{ color: stateColor, fontSize: fontSize + 'px' }" @click="handleTimeClick">
+  <div class="floating-window" :class="statusClass" @contextmenu="handleRightClick">
+    <div class="time-display" :style="{ fontSize: fontSize + 'px' }" @click="handleTimeClick">
       <div v-if="showTimer" class="time-text">{{ displayTime }}</div>
       <div v-if="showState" class="state-text">{{ stateText }}</div>
     </div>
@@ -315,5 +320,22 @@ onMounted(async () => {
 
 .drag-handle:active {
   color: var(--text-primary);
+}
+
+/* 状态颜色定义 */
+.floating-window.status-working,
+.floating-window.status-break {
+  color: var(--status-working-color);
+  border-color: var(--status-working-color);
+}
+
+.floating-window.status-paused {
+  color: var(--status-paused-color);
+  border-color: var(--status-paused-color);
+}
+
+.floating-window.status-idle {
+  color: var(--status-idle-color);
+  border-color: var(--status-idle-color);
 }
 </style>
