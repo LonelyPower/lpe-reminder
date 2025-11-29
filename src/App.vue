@@ -343,6 +343,27 @@ onMounted(async () => {
       console.error("Failed to save window state", e);
     }
   };
+
+  // 定义保存悬浮窗位置的函数
+  const saveFloatingWindowPosition = async (forceSaveToDb: boolean = false) => {
+    if (!settings.enableFloatingWindow) return;
+    
+    try {
+      const pos = await safeInvoke<[number, number]>("get_floating_window_position");
+      if (pos) {
+        settings.floatingWindowX = pos[0];
+        settings.floatingWindowY = pos[1];
+        
+        // 如果需要强制保存到数据库（退出时）
+        if (forceSaveToDb) {
+          await saveSetting("floatingWindowX", pos[0].toString());
+          await saveSetting("floatingWindowY", pos[1].toString());
+        }
+      }
+    } catch (e) {
+      console.error("Failed to save floating window position", e);
+    }
+  };
   
   // 初始化数据库并迁移数据
   try {
@@ -439,22 +460,8 @@ onMounted(async () => {
       console.log("[Tray] Quit event received");
       // 保存窗口状态
       await saveWindowState();
-      
-      // 保存悬浮窗位置
-      if (settings.enableFloatingWindow) {
-          try {
-            const pos = await safeInvoke<[number, number]>("get_floating_window_position");
-            if (pos) {
-               settings.floatingWindowX = pos[0];
-               settings.floatingWindowY = pos[1];
-               // 强制保存到数据库
-               await saveSetting("floatingWindowX", pos[0].toString());
-               await saveSetting("floatingWindowY", pos[1].toString());
-            }
-          } catch (e) {
-            console.error("Failed to get floating window position", e);
-          }
-      }
+      // 保存悬浮窗位置（强制保存到数据库）
+      await saveFloatingWindowPosition(true);
       await safeInvoke("app_exit");
     })
   );
@@ -466,19 +473,8 @@ onMounted(async () => {
     
     // 保存窗口状态
     await saveWindowState();
-
     // 保存悬浮窗位置
-    if (settings.enableFloatingWindow) {
-        try {
-          const pos = await safeInvoke<[number, number]>("get_floating_window_position");
-          if (pos) {
-             settings.floatingWindowX = pos[0];
-             settings.floatingWindowY = pos[1];
-          }
-        } catch (e) {
-          console.error("Failed to get floating window position", e);
-        }
-    }
+    await saveFloatingWindowPosition();
 
     const behavior = settings.closeBehavior;
     if (behavior === "quit") {
@@ -548,15 +544,7 @@ onMounted(async () => {
         safeInvoke("toggle_floating_window", { show: true });
       } else {
         // 保存位置
-        try {
-          const pos = await safeInvoke<[number, number]>("get_floating_window_position");
-          if (pos) {
-             settings.floatingWindowX = pos[0];
-             settings.floatingWindowY = pos[1];
-          }
-        } catch (e) {
-          console.error("Failed to get floating window position", e);
-        }
+        await saveFloatingWindowPosition();
         safeInvoke("toggle_floating_window", { show: false });
       }
     },
