@@ -13,11 +13,12 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const { settings: globalSettings, defaultSettings } = useSettings();
+const { settings: globalSettings, defaultSettings, save: saveSettings } = useSettings();
 
 // 本地状态，用于表单编辑，避免实时修改全局配置
 const localSettings = reactive({ ...globalSettings });
 const activeTab = ref<'general' | 'account'>('general');
+const isSaving = ref(false);
 
 // 当弹窗打开时，同步全局配置到本地
 watch(
@@ -29,9 +30,22 @@ watch(
   }
 );
 
-function handleSave() {
+async function handleSave() {
+  // 先更新全局设置（供 UI 立即响应）
   Object.assign(globalSettings, localSettings);
-  emit("close");
+  
+  // 然后保存到数据库
+  isSaving.value = true;
+  try {
+    await saveSettings();
+    emit("close");
+  } catch (error) {
+    console.error("Failed to save settings:", error);
+    // 可以在这里显示错误提示
+    alert("保存设置失败，请重试");
+  } finally {
+    isSaving.value = false;
+  }
 }
 
 function handleResetLocal() {
@@ -210,14 +224,14 @@ function handleResetLocal() {
           </div>
         </section>
         <footer class="dialog-footer">
-          <button type="button" class="ghost" @click="handleResetLocal">
+          <button type="button" class="ghost" @click="handleResetLocal" :disabled="isSaving">
             恢复默认
           </button>
-          <button type="button" class="ghost" @click="emit('close')">
+          <button type="button" class="ghost" @click="emit('close')" :disabled="isSaving">
             取消
           </button>
-          <button type="button" class="primary" @click="handleSave">
-            完成
+          <button type="button" class="primary" @click="handleSave" :disabled="isSaving">
+            {{ isSaving ? '保存中...' : '保存' }}
           </button>
         </footer>
       </div>

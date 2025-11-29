@@ -1,5 +1,5 @@
-import { reactive, watch } from "vue";
-import { initDatabase, getSettings, saveSetting } from "../utils/database";
+import { reactive } from "vue";
+import { initDatabase, getSettings, saveSettingsBatch } from "../utils/database";
 
 export interface AppSettings {
   timerMode: "countdown" | "stopwatch";
@@ -85,33 +85,25 @@ async function loadSettings() {
 }
 
 /**
- * 保存设置到数据库
+ * 手动保存设置到数据库（批量操作）
+ * 由用户主动调用，而非自动保存
  */
-async function saveSettings() {
+async function saveSettingsToDB(): Promise<void> {
   try {
-    for (const [key, value] of Object.entries(settings)) {
-      await saveSetting(key, JSON.stringify(value));
-    }
+    // 将设置转换为 [key, value] 数组格式
+    const settingsPairs = Object.entries(settings).map(([key, value]) => [
+      key,
+      JSON.stringify(value)
+    ]) as Array<[string, string]>;
     
-    console.log("✓ Settings saved to database");
+    // 批量保存到数据库
+    await saveSettingsBatch(settingsPairs);
+    
+    console.log("✓ Settings saved to database (batch)");
   } catch (error) {
     console.error("Failed to save settings to database:", error);
+    throw error; // 抛出错误让调用方处理
   }
-}
-
-/**
- * 监听设置变化并自动保存
- */
-function setupAutoSave() {
-  watch(
-    settings,
-    () => {
-      if (initialized) {
-        saveSettings();
-      }
-    },
-    { deep: true }
-  );
 }
 
 export function useSettings() {
@@ -128,12 +120,22 @@ export function useSettings() {
     // 如果正在初始化，创建并缓存 Promise
     if (!initialized) {
       initialized = true;
-      initPromise = loadSettings().then(() => {
-        setupAutoSave();
-      });
+      initPromise = loadSettings();
     }
     
     return initPromise || Promise.resolve();
+  }
+  
+  /**
+   * 手动保存当前设置到数据库
+   * 在用户点击保存按钮时调用
+   */
+  async function save(): Promise<void> {
+    if (!initialized) {
+      console.warn("Settings not initialized, skipping save");
+      return;
+    }
+    await saveSettingsToDB();
   }
   
   function resetToDefault() {
@@ -143,6 +145,7 @@ export function useSettings() {
   return {
     settings,
     init,
+    save,
     defaultSettings,
     resetToDefault,
   };

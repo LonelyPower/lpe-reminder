@@ -26,7 +26,7 @@ import { initDatabase, migrateFromLocalStorage, saveSetting } from "./utils/data
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
-const { settings } = useSettings();
+const { settings, save: saveSettingsToDB } = useSettings();
 const { addRecord } = useTimerHistory();
 
 // 选项卡状态
@@ -301,6 +301,8 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
   
   if (remember) {
     settings.closeBehavior = minimize ? "minimize" : "quit";
+    // 立即保存关闭行为偏好
+    await saveSettingsToDB();
     console.log("[CloseConfirm] Saved closeBehavior:", settings.closeBehavior);
   }
 

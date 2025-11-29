@@ -32,6 +32,12 @@
 - `src/App.vue` - 主窗口根组件 (协调计时器/设置/历史面板切换)
 - `src/components/FloatingWindow.vue` - 悬浮窗 (接收 `timer-state-sync` 事件同步状态)
 
+### 工具函数
+- `src/utils/debounce.ts` - 防抖函数 (debounce/debounceAsync)
+- `src/utils/errorHandler.ts` - 错误处理封装 (safeExecute/safeInvoke)
+- `src/utils/timeUtils.ts` - 时间格式化工具
+- `src/utils/audioPlayer.ts` - 音频播放管理
+
 ---
 
 ## 🏗️ 核心架构模式
@@ -162,23 +168,39 @@ pub fn get_or_create_user(&self, device_id: &str) -> Result<User> {
 - macOS: `~/Library/Application Support/com.lonelypower.lpe-reminder/lpe_reminder.db`
 - Linux: `~/.local/share/com.lonelypower.lpe-reminder/lpe_reminder.db`
 
-### 2. 设置自动持久化机制
+### 2. 设置手动保存机制（批量优化）
 
 ```typescript
-// useSettingsDB.ts
-const settings = reactive<AppSettings>({ ...defaultSettings });
+// useSettingsDB.ts - 手动保存 + 批量写入
+export function useSettings() {
+  async function save(): Promise<void> {
+    const settingsPairs = Object.entries(settings).map(([key, value]) => [
+      key,
+      JSON.stringify(value)
+    ]) as Array<[string, string]>;
+    
+    // ✅ 批量保存，一次 IPC 调用写入所有设置
+    await saveSettingsBatch(settingsPairs);
+  }
+  
+  return { settings, init, save, defaultSettings, resetToDefault };
+}
 
-// 监听所有设置变化
-watch(settings, async (newSettings) => {
-  const pairs = Object.entries(newSettings).map(([key, value]) => [
-    key,
-    JSON.stringify(value)
-  ]);
-  await saveSetting(pairs[0][0], pairs[0][1]);  // 示例：单个保存
-}, { deep: true });
+// SettingsDialog.vue - 用户点击保存时写入
+const { save: saveSettings } = useSettings();
+
+async function handleSave() {
+  Object.assign(globalSettings, localSettings);  // 更新内存状态
+  await saveSettings();  // 写入数据库
+  emit("close");
+}
 ```
 
-**注意**: 当前实现对每个设置项单独调用 `saveSetting`，可考虑批量优化 (`db_save_settings_batch`)
+**设计优势**:
+- ✅ **用户主动控制**: 只在点击"保存"按钮时写入数据库
+- ✅ **支持取消**: 点击"取消"按钮时不保存修改
+- ✅ **批量写入**: 所有设置一次性写入，减少 IPC 调用
+- ✅ **即时反馈**: UI 立即更新，数据库异步写入
 
 ### 3. 托盘图标缓存优化
 
