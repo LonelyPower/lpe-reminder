@@ -33,7 +33,7 @@
   --overlay-bg: rgba(0, 0, 0, 0.6);
 
   /* Status Colors (Dark Mode) */
-  --status-working-color: #07de9a;
+  --status-working-color: #06c588;
   --status-paused-color: #9CA3AF;
   --status-idle-color: #9CA3AF;
 }

@@ -253,7 +253,7 @@ onMounted(async () => {
   border-radius: 12px;
   user-select: none;
   box-shadow: 0 4px 12px var(--shadow-color);
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   overflow: hidden;
   transition: all 0.3s ease;
 }
