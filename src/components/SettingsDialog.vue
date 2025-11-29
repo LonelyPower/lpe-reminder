@@ -237,8 +237,11 @@ function handleResetLocal() {
 }
 
 .dialog {
-  width: min(480px, 90vw);
-  max-height: 85vh;
+  box-sizing: border-box;
+  width: 450px;
+  height: 550px;
+  max-width: calc(100% - 48px);
+  max-height: calc(100% - 48px);
   border-radius: 16px;
   background: var(--bg-card);
   padding: 24px;

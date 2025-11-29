@@ -31,10 +31,9 @@ function handleCancel() {
 </script>
 
 <template>
-  <teleport to="body">
-    <div v-if="props.visible" class="backdrop">
-      <div class="dialog" role="dialog" aria-modal="true">
-        <header class="dialog-header">
+  <div v-if="props.visible" class="backdrop">
+    <div class="dialog" role="dialog" aria-modal="true">
+      <header class="dialog-header">
           <h2>关闭应用</h2>
           <button type="button" class="close-btn" @click="handleCancel" aria-label="取消">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -58,14 +57,13 @@ function handleCancel() {
             最小化到托盘
           </button>
         </footer>
-      </div>
     </div>
-  </teleport>
+  </div>
 </template>
 
 <style scoped>
 .backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
@@ -76,13 +74,16 @@ function handleCancel() {
 }
 
 .dialog {
-  width: min(400px, 90vw);
+  box-sizing: border-box;
+  width: 400px;
+  max-width: calc(100% - 48px);
   border-radius: 16px;
   background: var(--bg-card);
   padding: 24px;
   box-shadow: 0 18px 40px var(--shadow-color);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
+  overflow: hidden;
 }
 
 .dialog-header {
