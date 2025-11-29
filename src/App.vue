@@ -585,20 +585,28 @@ onMounted(async () => {
       };
 
       if (settings.timerMode === "countdown") {
+        const isBreakMode = timer.mode.value === "break";
         await appWindow.emit("timer-state-sync", {
           ...commonPayload,
           mode: timer.mode.value,
           remainingMs: timer.remainingMs.value,
           isRunning: timer.isRunning.value,
           timerMode: "countdown",
+          // 休息模式专用字段
+          isBreakMode: isBreakMode,
+          breakElapsedMs: isBreakMode ? timer.breakElapsedMs.value : 0,
         });
       } else {
+        const isBreakMode = stopwatch.mode.value === "break";
         await appWindow.emit("timer-state-sync", {
           ...commonPayload,
           mode: stopwatch.mode.value, // work 或 break
           elapsedMs: stopwatch.elapsedMs.value,
           isRunning: stopwatch.isRunning.value,
           timerMode: "stopwatch",
+          // 休息模式专用字段
+          isBreakMode: isBreakMode,
+          breakElapsedMs: isBreakMode ? stopwatch.elapsedMs.value : 0,
         });
       }
     }, "Sync timer state to floating window");
@@ -611,6 +619,7 @@ onMounted(async () => {
       timer.mode.value, 
       timer.remainingMs.value, 
       timer.isRunning.value,
+      timer.breakElapsedMs.value, // 监听休息已过时长
       stopwatch.mode.value,
       stopwatch.elapsedMs.value,
       stopwatch.isRunning.value
@@ -648,6 +657,16 @@ onMounted(async () => {
       if (settings.timerMode === "stopwatch") {
         stopwatch.stop();
       }
+    })
+  );
+  // 监听悬浮窗请求显示主窗口（休息模式下点击）
+  unlistenFns.value.push(
+    await listen("float-show-main", async () => {
+      console.log("[Float] Show main window requested");
+      await safeExecute(async () => {
+        await appWindow.show();
+        await appWindow.setFocus();
+      }, "Show main window from floating window");
     })
   );
 

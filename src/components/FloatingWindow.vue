@@ -14,6 +14,9 @@ const mode = ref<TimerMode>("idle");
 const remainingMs = ref(0);
 const elapsedMs = ref(0);
 const isRunning = ref(false);
+// 休息模式专用状态
+const isBreakMode = ref(false);
+const breakElapsedMs = ref(0);
 
 // 显示控制设置
 const showTimer = ref(settings.floatingWindowShowTimer);
@@ -41,6 +44,12 @@ const fontSize = computed(() => {
 
 // 计算显示的时间
 const displayTime = computed(() => {
+  // 休息模式下，统一显示休息正计时
+  if (isBreakMode.value) {
+    return formatTime(breakElapsedMs.value);
+  }
+  
+  // 工作模式：正计时显示 elapsedMs，倒计时显示 remainingMs
   if (timerMode.value === "stopwatch") {
     return formatTime(elapsedMs.value);
   }
@@ -49,16 +58,17 @@ const displayTime = computed(() => {
 
 // 根据状态返回 CSS 类名
 const statusClass = computed(() => {
+  // 统一处理休息模式
+  if (isBreakMode.value) return "status-break";
+  
   if (timerMode.value === "stopwatch") {
-    // 正计时模式
-    if (mode.value === "break") return "status-break";
+    // 正计时模式（工作状态）
     if (elapsedMs.value > 0 || isRunning.value) {
       return isRunning.value ? "status-working" : "status-paused";
     }
     return "status-idle";
   }
-  // 倒计时模式
-  if (mode.value === "break") return "status-break";
+  // 倒计时模式（工作状态）
   if (mode.value === "work") {
     return isRunning.value ? "status-working" : "status-paused";
   }
@@ -67,27 +77,35 @@ const statusClass = computed(() => {
 
 // 状态文本
 const stateText = computed(() => {
+  // 统一处理休息模式
+  if (isBreakMode.value) return "休息中";
+  
   if (timerMode.value === "stopwatch") {
-    // 正计时模式
-    if (mode.value === "break") return "休息中";
+    // 正计时模式（工作状态）
     if (elapsedMs.value === 0 && !isRunning.value) return "空闲";
     return isRunning.value ? "计时中" : "已暂停";
   }
-  // 倒计时模式
-  if (mode.value === "break") return "休息中";
+  // 倒计时模式（工作状态）
   if (mode.value === "work") {
     return isRunning.value ? "工作中" : "已暂停";
   }
   return "空闲";
 });
 
-// 左键单击：暂停/继续
+// 左键单击：休息模式下显示主窗口，工作模式下暂停/继续
 async function handleClick() {
   const { getAllWindows } = await import("@tauri-apps/api/window");
   const windows = await getAllWindows();
   const mainWindow = windows.find((w) => w.label === "main");
 
   if (mainWindow) {
+    // 休息模式下，点击显示主窗口（进入休息界面）
+    if (isBreakMode.value) {
+      await mainWindow.emit("float-show-main", {});
+      return;
+    }
+    
+    // 工作模式下，点击暂停/继续
     if (isRunning.value) {
       await mainWindow.emit("float-pause", {});
     } else {
@@ -186,9 +204,14 @@ onMounted(async () => {
         applyTheme(payload.theme);
       }
 
+      // 同步休息模式状态（统一处理）
+      isBreakMode.value = payload.isBreakMode || false;
+      breakElapsedMs.value = payload.breakElapsedMs || 0;
+
       if (payload.timerMode === "stopwatch") {
         elapsedMs.value = payload.elapsedMs || 0;
         isRunning.value = payload.isRunning || false;
+        mode.value = payload.mode || "work";
       } else {
         mode.value = payload.mode || "idle";
         remainingMs.value = payload.remainingMs || 0;
