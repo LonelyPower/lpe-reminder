@@ -85,23 +85,24 @@ function handleClick(action: string) {
 .context-menu {
   position: fixed;
   min-width: 140px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow-color);
   padding: 4px 0;
   z-index: 10001;
+  border: 1px solid var(--border-color);
 }
 
 .menu-item {
   padding: 8px 16px;
   font-size: 14px;
-  color: #374151;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.15s;
 }
 
 .menu-item:hover {
-  background: #f3f4f6;
+  background: var(--bg-hover);
 }
 
 .menu-item:first-child {

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { formatTime } from "../utils/timeUtils";
 import type { TimerMode } from "../composables/useTimer";
-import { useSettings } from "../composables/useSettings";
+import { useSettings } from "../composables/useSettingsDB";
 
 const { settings } = useSettings();
 
@@ -47,22 +47,22 @@ const displayTime = computed(() => {
   return formatTime(remainingMs.value);
 });
 
-// 根据状态显示颜色
-const stateColor = computed(() => {
+// 根据状态返回 CSS 类名
+const statusClass = computed(() => {
   if (timerMode.value === "stopwatch") {
     // 正计时模式
-    if (mode.value === "break") return "#22c55e"; // 绿色 - 休息中
+    if (mode.value === "break") return "status-break";
     if (elapsedMs.value > 0 || isRunning.value) {
-      return isRunning.value ? "#10b981" : "#94a3b8"; // 绿色 - 计时中 / 灰色 - 暂停
+      return isRunning.value ? "status-working" : "status-paused";
     }
-    return "#3b82f6"; // 蓝色 - 空闲
+    return "status-idle";
   }
   // 倒计时模式
-  if (mode.value === "break") return "#22c55e"; // 绿色 - 休息中
+  if (mode.value === "break") return "status-break";
   if (mode.value === "work") {
-    return isRunning.value ? "#f59e0b" : "#94a3b8"; // 橙色 - 工作中 / 灰色 - 已暂停
+    return isRunning.value ? "status-working" : "status-paused";
   }
-  return "#3b82f6"; // 蓝色 - 空闲
+  return "status-idle";
 });
 
 // 状态文本
@@ -134,11 +134,45 @@ function handleTimeClick() {
   handleClick();
 }
 
+const currentTheme = ref("system");
+
+function applyTheme(theme: string) {
+  currentTheme.value = theme;
+  const root = document.documentElement;
+  if (theme === "dark") {
+    root.classList.add("dark");
+  } else if (theme === "light") {
+    root.classList.remove("dark");
+  } else {
+    // System
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }
+}
+
+watch(() => settings.theme, (newTheme) => {
+  if (newTheme) applyTheme(newTheme);
+}, { immediate: true });
+
 onMounted(async () => {
   const win = getCurrentWindow();
 
   // 设置窗口始终置顶
   await win.setAlwaysOnTop(true);
+
+  // 监听系统主题变化
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    if (currentTheme.value === "system") {
+      if (e.matches) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+  });
 
   // 监听主窗口同步的计时器状态
   await listen<any>(
@@ -147,6 +181,11 @@ onMounted(async () => {
       const payload = event.payload;
       timerMode.value = payload.timerMode || "countdown";
       
+      // 同步主题
+      if (payload.theme) {
+        applyTheme(payload.theme);
+      }
+
       if (payload.timerMode === "stopwatch") {
         elapsedMs.value = payload.elapsedMs || 0;
         isRunning.value = payload.isRunning || false;
@@ -168,19 +207,22 @@ onMounted(async () => {
   );
 
   // 监听显示设置变化
-  await listen<{ showTimer: boolean; showState: boolean }>(
+  await listen<{ showTimer: boolean; showState: boolean; theme?: string }>(
     "float-display-settings-sync",
     (event) => {
       showTimer.value = event.payload.showTimer;
       showState.value = event.payload.showState;
+      if (event.payload.theme) {
+        applyTheme(event.payload.theme);
+      }
     }
   );
 });
 </script>
 
 <template>
-  <div class="floating-window" :style="{ '--border-color': stateColor }" @contextmenu="handleRightClick">
-    <div class="time-display" :style="{ color: stateColor, fontSize: fontSize + 'px' }" @click="handleTimeClick">
+  <div class="floating-window" :class="statusClass" @contextmenu="handleRightClick">
+    <div class="time-display" :style="{ fontSize: fontSize + 'px' }" @click="handleTimeClick">
       <div v-if="showTimer" class="time-text">{{ displayTime }}</div>
       <div v-if="showState" class="state-text">{{ stateText }}</div>
     </div>
@@ -206,22 +248,19 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 0 8px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
+  padding: 0 12px;
+  background: var(--bg-card);
   border-radius: 12px;
   user-select: none;
-  /* 使用inset阴影模拟边框效果 */
-  box-shadow: inset 0 0 0 2px var(--border-color, #3b82f6);
-  transition: box-shadow 0.3s ease;
-  --border-color: #3b82f6;
-  /* 确保圆角外部完全透明，避免阴影残留 */
+  box-shadow: 0 4px 12px var(--shadow-color);
+  border: 2px solid var(--border-color);
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .floating-window:hover {
-  background: rgba(255, 255, 255, 1);
-  box-shadow: inset 0 0 0 2px var(--border-color, #3b82f6);
+  box-shadow: 0 6px 16px var(--shadow-color);
+  /* transform: translateY(-1px); 移除上跳效果以防止上边框被窗口裁剪 */
 }
 
 .time-display {
@@ -233,13 +272,12 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-weight: bold;
+  font-weight: 700;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
   transition: color 0.3s ease;
   cursor: pointer;
-  border-radius: 6px;
-  text-align: center;
   overflow: hidden;
+  text-align: center;
 }
 
 .time-text {
@@ -248,25 +286,19 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  text-align: center;
 }
 
 .state-text {
   font-size: 0.5em;
   opacity: 0.8;
-  font-weight: normal;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 500;
+  font-family: system-ui, -apple-system, sans-serif;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-}
-
-.time-display:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.time-display:active {
-  background: rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
 .drag-handle {
@@ -278,18 +310,32 @@ onMounted(async () => {
   flex-shrink: 0;
   height: 100%;
   cursor: move;
-  color: #9ca3af;
+  color: var(--text-secondary);
   transition: color 0.2s;
-  border-radius: 4px;
 }
 
 .drag-handle:hover {
-  color: #6b7280;
-  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
 }
 
 .drag-handle:active {
-  color: #4b5563;
-  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-primary);
+}
+
+/* 状态颜色定义 */
+.floating-window.status-working,
+.floating-window.status-break {
+  color: var(--status-working-color);
+  border-color: var(--status-working-color);
+}
+
+.floating-window.status-paused {
+  color: var(--status-paused-color);
+  border-color: var(--status-paused-color);
+}
+
+.floating-window.status-idle {
+  color: var(--status-idle-color);
+  border-color: var(--status-idle-color);
 }
 </style>

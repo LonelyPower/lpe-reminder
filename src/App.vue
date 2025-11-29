@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
 import {
   isPermissionGranted,
   requestPermission,
@@ -22,7 +22,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 import { playAudio, preloadAudio } from "./utils/audioPlayer";
-import { initDatabase, migrateFromLocalStorage } from "./utils/database";
+import { initDatabase, migrateFromLocalStorage, saveSetting } from "./utils/database";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
@@ -174,6 +174,11 @@ function openSettings() {
   showSettings.value = true;
 }
 
+function closeApp() {
+  const win = getCurrentWindow();
+  win.close();
+}
+
 function closeSettings() {
   showSettings.value = false;
 }
@@ -271,18 +276,84 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 
 onMounted(async () => {
   const appWindow = getCurrentWindow();
+
+  // 定义保存窗口状态（尺寸和位置）的函数
+  const saveWindowState = async () => {
+    try {
+      const size = await appWindow.innerSize();
+      const position = await appWindow.innerPosition();
+      const factor = await appWindow.scaleFactor();
+      
+      const logicalSize = size.toLogical(factor);
+      const logicalPosition = position.toLogical(factor);
+      
+      settings.windowWidth = logicalSize.width;
+      settings.windowHeight = logicalSize.height;
+      settings.windowX = logicalPosition.x;
+      settings.windowY = logicalPosition.y;
+      
+      await saveSetting("windowWidth", logicalSize.width.toString());
+      await saveSetting("windowHeight", logicalSize.height.toString());
+      await saveSetting("windowX", logicalPosition.x.toString());
+      await saveSetting("windowY", logicalPosition.y.toString());
+    } catch (e) {
+      console.error("Failed to save window state", e);
+    }
+  };
   
   // 初始化数据库并迁移数据
   try {
+    // 1. 初始化数据库
     await initDatabase();
     console.log("✓ Database initialized");
     
-    // 检查是否需要从 localStorage 迁移数据
+    // 2. 检查是否需要从 localStorage 迁移数据
     const hasOldData = localStorage.getItem("lpe-reminder-settings") || 
                        localStorage.getItem("lpe-reminder-history");
     if (hasOldData) {
       console.log("Found old localStorage data, starting migration...");
       await migrateFromLocalStorage();
+    }
+
+    // 3. 显式等待设置加载完成
+    // useSettings() 内部虽然调用了 loadSettings，但它是异步的且没有暴露 Promise
+    // 这里我们手动调用一次 loadSettings 确保数据已就绪
+    // 注意：由于 useSettings 是单例模式，我们需要一种机制来等待它加载完成
+    // 这里我们简单地通过轮询 settings.windowWidth 是否变化来判断（或者直接依赖 useSettings 的副作用）
+    
+    // 更可靠的方法是：在 App.vue 中直接调用数据库读取逻辑来获取窗口大小，或者改造 useSettings
+    // 这里我们采用直接读取数据库的方式来确保获取到最新的窗口尺寸
+    const { getSettings } = await import("./utils/database");
+    const rows = await getSettings();
+    let savedWidth = settings.windowWidth;
+    let savedHeight = settings.windowHeight;
+    let savedX = settings.windowX;
+    let savedY = settings.windowY;
+
+    for (const row of rows) {
+      if (row.key === "windowWidth") savedWidth = JSON.parse(row.value);
+      if (row.key === "windowHeight") savedHeight = JSON.parse(row.value);
+      if (row.key === "windowX") savedX = JSON.parse(row.value);
+      if (row.key === "windowY") savedY = JSON.parse(row.value);
+    }
+
+    // 4. 恢复窗口尺寸和位置
+    if (savedWidth && savedHeight) {
+      console.log(`Restoring window size to ${savedWidth}x${savedHeight}`);
+      try {
+        await appWindow.setSize(new LogicalSize(savedWidth, savedHeight));
+      } catch (e) {
+        console.error("Failed to restore window size", e);
+      }
+    }
+    
+    if (savedX !== undefined && savedY !== undefined) {
+      console.log(`Restoring window position to (${savedX}, ${savedY})`);
+      try {
+        await appWindow.setPosition(new LogicalPosition(savedX, savedY));
+      } catch (e) {
+        console.error("Failed to restore window position", e);
+      }
     }
   } catch (error) {
     console.error("Database initialization failed:", error);
@@ -332,12 +403,52 @@ onMounted(async () => {
       }, "Show settings from tray");
     })
   );
+  unlistenFns.value.push(
+    await listen("tray-quit", async () => {
+      console.log("[Tray] Quit event received");
+      // 保存窗口状态
+      await saveWindowState();
+      
+      // 保存悬浮窗位置
+      if (settings.enableFloatingWindow) {
+          try {
+            const pos = await safeInvoke<[number, number]>("get_floating_window_position");
+            if (pos) {
+               settings.floatingWindowX = pos[0];
+               settings.floatingWindowY = pos[1];
+               // 强制保存到数据库
+               await saveSetting("floatingWindowX", pos[0].toString());
+               await saveSetting("floatingWindowY", pos[1].toString());
+            }
+          } catch (e) {
+            console.error("Failed to get floating window position", e);
+          }
+      }
+      await safeInvoke("app_exit");
+    })
+  );
 
   // 处理窗口关闭请求
   await appWindow.onCloseRequested(async (event) => {
     console.log("[CloseRequested] Triggered, behavior:", settings.closeBehavior);
     event.preventDefault(); // 始终阻止默认行为
     
+    // 保存窗口状态
+    await saveWindowState();
+
+    // 保存悬浮窗位置
+    if (settings.enableFloatingWindow) {
+        try {
+          const pos = await safeInvoke<[number, number]>("get_floating_window_position");
+          if (pos) {
+             settings.floatingWindowX = pos[0];
+             settings.floatingWindowY = pos[1];
+          }
+        } catch (e) {
+          console.error("Failed to get floating window position", e);
+        }
+    }
+
     const behavior = settings.closeBehavior;
     if (behavior === "quit") {
       console.log("[CloseRequested] Exiting app...");
@@ -393,9 +504,30 @@ onMounted(async () => {
   // 监听悬浮窗开关，控制显示/隐藏
   const stopFloatingWindowWatch = watch(
     () => settings.enableFloatingWindow,
-    (enabled) => {
+    async (enabled) => {
       console.log("[FloatingWindow] Toggle:", enabled);
-      safeInvoke("toggle_floating_window", { show: enabled });
+      if (enabled) {
+        // 恢复位置
+        if (settings.floatingWindowX !== undefined && settings.floatingWindowY !== undefined) {
+           await safeInvoke("move_floating_window", { 
+             x: settings.floatingWindowX, 
+             y: settings.floatingWindowY 
+           });
+        }
+        safeInvoke("toggle_floating_window", { show: true });
+      } else {
+        // 保存位置
+        try {
+          const pos = await safeInvoke<[number, number]>("get_floating_window_position");
+          if (pos) {
+             settings.floatingWindowX = pos[0];
+             settings.floatingWindowY = pos[1];
+          }
+        } catch (e) {
+          console.error("Failed to get floating window position", e);
+        }
+        safeInvoke("toggle_floating_window", { show: false });
+      }
     },
     { immediate: true }
   );
@@ -426,14 +558,15 @@ onMounted(async () => {
 
   // 监听悬浮窗显示设置变化
   const stopFloatingWindowDisplayWatch = watch(
-    () => [settings.floatingWindowShowTimer, settings.floatingWindowShowState],
-    ([showTimer, showState]) => {
+    () => [settings.floatingWindowShowTimer, settings.floatingWindowShowState, settings.theme],
+    ([showTimer, showState, theme]) => {
       if (settings.enableFloatingWindow) {
-        console.log("[FloatingWindow] Display settings:", { showTimer, showState });
+        console.log("[FloatingWindow] Display settings:", { showTimer, showState, theme });
         safeExecute(async () => {
           await appWindow.emit("float-display-settings-sync", { 
             showTimer: showTimer as boolean, 
-            showState: showState as boolean 
+            showState: showState as boolean,
+            theme: theme as string
           });
         }, "Sync display settings to floating window");
       }
@@ -447,8 +580,13 @@ onMounted(async () => {
     if (!settings.enableFloatingWindow) return;
     
     await safeExecute(async () => {
+      const commonPayload = {
+        theme: settings.theme
+      };
+
       if (settings.timerMode === "countdown") {
         await appWindow.emit("timer-state-sync", {
+          ...commonPayload,
           mode: timer.mode.value,
           remainingMs: timer.remainingMs.value,
           isRunning: timer.isRunning.value,
@@ -456,6 +594,7 @@ onMounted(async () => {
         });
       } else {
         await appWindow.emit("timer-state-sync", {
+          ...commonPayload,
           mode: stopwatch.mode.value, // work 或 break
           elapsedMs: stopwatch.elapsedMs.value,
           isRunning: stopwatch.isRunning.value,
@@ -512,6 +651,40 @@ onMounted(async () => {
     })
   );
 
+  // 监听主题变化
+  watch(
+    () => settings.theme,
+    (newTheme) => {
+      const root = document.documentElement;
+      if (newTheme === 'dark') {
+        root.classList.add('dark');
+      } else if (newTheme === 'light') {
+        root.classList.remove('dark');
+      } else {
+        // System theme
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      }
+    },
+    { immediate: true }
+  );
+
+  // 监听系统主题变化
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (settings.theme === 'system') {
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    });
+  }
+
   // 初始同步一次状态
   await syncFloatingWindowState();
 });
@@ -546,11 +719,16 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="app-root">
-    <header class="app-header">
-      <h1 class="app-title">护眼定时器（预览版）</h1>
-      <button type="button" class="settings-btn" @click="openSettings">
-        设置
-      </button>
+    <header class="app-header" data-tauri-drag-region>
+      <h1 class="app-title" data-tauri-drag-region>LPE Reminder</h1>
+      <div class="header-actions">
+        <button type="button" class="icon-btn settings-btn" @click="openSettings" aria-label="设置">
+          设置
+        </button>
+        <button type="button" class="icon-btn close-btn" @click="closeApp" aria-label="关闭">
+          关闭
+        </button>
+      </div>
     </header>
 
     <div class="tabs">
@@ -575,11 +753,11 @@ onBeforeUnmount(() => {
     <div v-show="activeTab === 'timer'" class="tab-content">
       <TimerPanel
         v-if="settings.timerMode === 'countdown'"
-        :mode="timer.mode.value"
-        :remaining-ms="timer.remainingMs.value"
+        :mode="timer.mode.value === 'break' ? 'idle' : timer.mode.value"
+        :remaining-ms="timer.mode.value === 'break' ? minutesSecondsToMs(settings.workDurationMinutes, settings.workDurationSeconds) : timer.remainingMs.value"
         :cycle-count="timer.cycleCount.value"
         :total-duration-ms="timer.totalDurationMs.value"
-        :is-running="timer.isRunning.value"
+        :is-running="timer.mode.value === 'break' ? false : timer.isRunning.value"
         @start="timer.start()"
         @pause="timer.pause()"
         @reset="handleReset"
@@ -588,8 +766,8 @@ onBeforeUnmount(() => {
 
       <StopwatchPanel
         v-if="settings.timerMode === 'stopwatch'"
-        :elapsed-ms="stopwatch.elapsedMs.value"
-        :is-running="stopwatch.isRunning.value"
+        :elapsed-ms="stopwatch.mode.value === 'break' ? 0 : stopwatch.elapsedMs.value"
+        :is-running="stopwatch.mode.value === 'break' ? false : stopwatch.isRunning.value"
         @start="stopwatch.start()"
         @pause="stopwatch.pause()"
         @stop="stopwatch.stop()"
@@ -640,81 +818,140 @@ onBeforeUnmount(() => {
   </main>
 </template>
 
+<style>
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden; /* 防止出现滚动条 */
+}
+</style>
+
 <style scoped>
 .app-root {
-  min-height: 100vh;
-  padding: 24px 16px 40px;
-  background: radial-gradient(circle at top left, #e0f2fe, #f9fafb);
+ height: 100vh;
+  padding: 12px;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, sans-serif;
+    border-radius: 16px; /* 圆角 */
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .app-header {
-  max-width: 720px;
-  margin: 0 auto 12px;
+  max-width: 100%;
+  margin: 0 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 8px;
+  position: relative;
+  z-index: 50;
 }
 
 .app-title {
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
 }
 
-.settings-btn {
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  font-size: 14px;
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0; /* Hide text, use icon if possible, or just keep text small */
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
-.settings-btn:hover {
-  background: #f3f4f6;
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.settings-btn::before {
+  content: "⚙️";
+  font-size: 16px;
+}
+
+.close-btn::before {
+  content: "✕";
+  font-size: 16px;
+}
+
+.close-btn:hover {
+  background: #FEE2E2;
+  color: #EF4444;
 }
 
 .tabs {
-  max-width: 720px;
-  margin: 0 auto 20px;
+  max-width: 100%;
+  margin: 0 0 16px;
   display: flex;
-  gap: 8px;
   padding: 4px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--bg-secondary);
+  border-radius: 16px;
 }
 
 .tab-btn {
   flex: 1;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .tab-btn:hover {
-  background: #f9fafb;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  background: var(--bg-card);
+  color: var(--primary-color);
+  box-shadow: 0 2px 4px var(--shadow-color);
+  font-weight: 600;
 }
 
 .tab-content {
-  animation: fadeIn 0.3s ease-in-out;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.tab-content {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;

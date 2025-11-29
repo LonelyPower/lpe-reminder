@@ -35,93 +35,102 @@ function getProgress(elapsed: number, target: number): number {
 </script>
 
 <template>
-  <teleport to="body">
-    <Transition name="overlay-fade">
-      <div v-if="visible" class="overlay">
-        <div class="overlay-content">
-          <div class="icon-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          </div>
+  <Transition name="overlay-fade">
+    <div v-if="visible" class="overlay" data-tauri-drag-region>
+      <div class="overlay-content">
+        <div class="icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
 
-          <h1 class="title">休息时间</h1>
-          
-          <div class="timer-display">
-            <div class="time">{{ formatTime(elapsedMs) }}</div>
-            <div class="target">/ {{ formatTime(targetMs) }}</div>
-          </div>
+        <h1 class="title">休息时间</h1>
 
-          <!-- 护眼提示（仅倒计时模式显示） -->
-          <p  class="eye-tips">
-            💡 闭目轻轻转动眼球，缓解干涩与疲劳
-          </p>
+        <div class="timer-display">
+          <div class="time">{{ formatTime(elapsedMs) }}</div>
+          <div class="target">/ {{ formatTime(targetMs) }}</div>
+        </div>
 
-          <div v-if="!isOvertime" class="progress-bar">
-            <div class="progress-fill" :style="{ width: getProgress(elapsedMs, targetMs) + '%' }"></div>
-          </div>
+        <!-- 护眼提示（仅倒计时模式显示） -->
+        <p class="eye-tips">
+          💡 闭目轻轻转动眼球，缓解干涩与疲劳
+        </p>
 
-          <div v-if="isOvertime" class="overtime-notice">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <span>已超过建议休息时长</span>
-          </div>
+        <div v-if="!isOvertime" class="progress-bar">
+          <div class="progress-fill" :style="{ width: getProgress(elapsedMs, targetMs) + '%' }"></div>
+        </div>
 
-          <div class="actions">
-            <button type="button" class="btn btn-primary" @click="emit('end')">
-              结束休息
-            </button>
-          </div>
+        <div v-if="isOvertime" class="overtime-notice">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>已超过休息时长</span>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-primary" @click="emit('end')">
+            结束休息
+          </button>
         </div>
       </div>
-    </Transition>
-  </teleport>
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
 .overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 100;
   padding: 20px;
 }
 
 .overlay-content {
   text-align: center;
-  max-width: 500px;
+  max-width: 480px;
   width: 100%;
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px var(--shadow-color);
+  color: var(--text-primary);
 }
 
 .icon-wrapper {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 120px;
-  height: 120px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  margin-bottom: 32px;
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--primary-color);
+  margin-bottom: 24px;
   animation: pulse 2s ease-in-out infinite;
 }
 
 .icon-wrapper svg {
-  color: #ffffff;
+  color: var(--primary-color);
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 0.8;
@@ -129,11 +138,10 @@ function getProgress(elapsed: number, target: number): number {
 }
 
 .title {
-  font-size: 36px;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
   margin: 0 0 24px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .timer-display {
@@ -141,38 +149,38 @@ function getProgress(elapsed: number, target: number): number {
   align-items: baseline;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .time {
   font-size: 64px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--primary-color);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  line-height: 1;
 }
 
 .target {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-muted);
 }
 
 .eye-tips {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.95);
+  font-size: 15px;
+  color: var(--text-secondary);
   text-align: center;
-  margin: 0 0 20px 0;
-  padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.15);
+  margin: 0 0 32px 0;
+  padding: 16px;
+  background: var(--bg-secondary);
   border-radius: 12px;
-  backdrop-filter: blur(5px);
+  border: 1px solid var(--border-color);
 }
 
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--bg-secondary);
   border-radius: 999px;
   overflow: hidden;
   margin-bottom: 32px;
@@ -180,10 +188,9 @@ function getProgress(elapsed: number, target: number): number {
 
 .progress-fill {
   height: 100%;
-  background: #ffffff;
+  background: var(--primary-color);
   border-radius: 999px;
-  transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  transition: width 0.2s linear;
 }
 
 .overtime-notice {
@@ -192,20 +199,20 @@ function getProgress(elapsed: number, target: number): number {
   justify-content: center;
   gap: 8px;
   padding: 12px 20px;
-  background: rgba(251, 191, 36, 0.2);
-  border: 2px solid rgba(251, 191, 36, 0.5);
+  background: rgba(254, 243, 199, 0.9);
+  border: 1px solid #FCD34D;
   border-radius: 12px;
-  color: #fef3c7;
+  color: #92400E;
   font-size: 14px;
   font-weight: 500;
-  margin-bottom: 32px;
-  animation: shake 0.5s ease-in-out;
+  margin-bottom: 24px;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+/* Dark mode adjustment for overtime notice */
+:global(.dark) .overtime-notice {
+  background: rgba(146, 64, 14, 0.2);
+  border-color: rgba(252, 211, 77, 0.3);
+  color: #FCD34D;
 }
 
 .overtime-notice svg {
@@ -214,40 +221,35 @@ function getProgress(elapsed: number, target: number): number {
 
 .actions {
   display: flex;
-  gap: 16px;
   justify-content: center;
+  gap: 16px;
 }
 
 .btn {
-  padding: 14px 32px;
+  padding: 12px 32px;
+  border-radius: 16px;
   font-size: 16px;
   font-weight: 600;
-  border: none;
-  border-radius: 12px;
   cursor: pointer;
+  border: none;
   transition: all 0.2s;
   min-width: 140px;
 }
 
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
 .btn-primary {
-  background: #ffffff;
-  color: #059669;
+  background: var(--primary-color);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
 }
 
 .btn-primary:hover {
-  background: #f0fdf4;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 /* 动画 */

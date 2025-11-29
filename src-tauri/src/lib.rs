@@ -226,6 +226,30 @@ fn resize_floating_window(app: tauri::AppHandle, width: f64, height: f64) -> Res
     }
 }
 
+#[tauri::command]
+fn move_floating_window(app: tauri::AppHandle, x: f64, y: f64) -> Result<(), String> {
+    if let Some(float_window) = app.get_webview_window("float") {
+        use tauri::Position;
+        let position = Position::Logical(tauri::LogicalPosition { x, y });
+        float_window.set_position(position).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("Float window not found".to_string())
+    }
+}
+
+#[tauri::command]
+fn get_floating_window_position(app: tauri::AppHandle) -> Result<(f64, f64), String> {
+    if let Some(float_window) = app.get_webview_window("float") {
+        let position = float_window.outer_position().map_err(|e| e.to_string())?;
+        let scale_factor = float_window.scale_factor().map_err(|e| e.to_string())?;
+        let logical_pos = position.to_logical::<f64>(scale_factor);
+        Ok((logical_pos.x, logical_pos.y))
+    } else {
+        Err("Float window not found".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -236,7 +260,13 @@ pub fn run() {
             let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");
             std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
             
-            let db_path = app_data_dir.join("lpe_reminder.db");
+            // 开发环境和生产环境使用不同的数据库文件，避免数据冲突
+            #[cfg(debug_assertions)]
+            let db_filename = "lpe_reminder_dev.db";
+            #[cfg(not(debug_assertions))]
+            let db_filename = "lpe_reminder.db";
+
+            let db_path = app_data_dir.join(db_filename);
             println!("Database path: {:?}", db_path);
             
             let database = Database::new(db_path).expect("Failed to initialize database");
@@ -355,7 +385,7 @@ pub fn run() {
                     }
                     "quit" => {
                         println!("Tray: Quit clicked");
-                        app.exit(0);
+                        let _ = app.emit("tray-quit", ());
                     }
                     _ => {}
                 })
@@ -385,6 +415,8 @@ pub fn run() {
             toggle_floating_window,
             show_tray_menu_at_cursor,
             resize_floating_window,
+            move_floating_window,
+            get_floating_window_position,
             db_init_user,
             db_update_phone,
             db_get_user,

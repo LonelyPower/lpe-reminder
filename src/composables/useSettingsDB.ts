@@ -18,6 +18,13 @@ export interface AppSettings {
   floatingWindowHeight: number;
   floatingWindowShowTimer: boolean;
   floatingWindowShowState: boolean;
+  floatingWindowX?: number;
+  floatingWindowY?: number;
+  windowWidth?: number;
+  windowHeight?: number;
+  windowX?: number;
+  windowY?: number;
+  theme: "light" | "dark" | "system";
 }
 
 export const defaultSettings: AppSettings = {
@@ -32,11 +39,18 @@ export const defaultSettings: AppSettings = {
   enablerestSound: true,
   enableNotification: true,
   closeBehavior: "ask",
-  enableFloatingWindow: false,
+  enableFloatingWindow: true,
   floatingWindowWidth: 150,
   floatingWindowHeight: 50,
   floatingWindowShowTimer: true,
   floatingWindowShowState: true,
+  floatingWindowX: undefined,
+  floatingWindowY: undefined,
+  windowWidth: 450,
+  windowHeight: 550,
+  windowX: undefined,
+  windowY: undefined,
+  theme: "dark",
 };
 
 const settings = reactive<AppSettings>({ ...defaultSettings });

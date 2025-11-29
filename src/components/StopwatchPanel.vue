@@ -47,7 +47,6 @@ function onPrimaryClick() {
 
 <template>
   <section class="stopwatch-panel">
-    <h1 class="title">正计时器</h1>
     <p class="subtitle">
       当前状态：
       <strong>{{ statusLabel }}</strong>
@@ -73,47 +72,57 @@ function onPrimaryClick() {
 
 <style scoped>
 .stopwatch-panel {
-  max-width: 420px;
-  margin: 40px auto;
-  padding: 24px 20px 20px;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  max-width: 100%;
+  margin: 0;
+  padding: 32px 24px;
+  border-radius: 24px;
+  background: var(--bg-card);
+  box-shadow: 0 4px 20px var(--shadow-color);
   text-align: center;
-}
-
-.title {
-  font-size: 24px;
-  margin-bottom: 8px;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #666;
-  margin-bottom: 16px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.subtitle strong {
+  color: var(--primary-color);
 }
 
 .time-display {
-  font-size: 40px;
-  letter-spacing: 0.08em;
-  margin-bottom: 24px;
-  color: #10b981;
+  font-size: 64px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 24px 0 48px;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   justify-content: center;
 }
 
 .actions button {
-  min-width: 88px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 14px;
+  min-width: 96px;
+  padding: 10px 20px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: none;
   transition: all 0.2s;
 }
 
@@ -123,22 +132,28 @@ function onPrimaryClick() {
 }
 
 .primary {
-  background: #10b981;
+  background: var(--primary-color);
   color: #ffffff;
-  border-color: #059669;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
 }
 
 .primary:hover:not(:disabled) {
-  background: #059669;
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3);
+}
+
+.primary:active {
+  transform: translateY(0);
 }
 
 .ghost {
-  background: #ffffff;
-  color: #374151;
-  border-color: #d1d5db;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .ghost:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 </style>

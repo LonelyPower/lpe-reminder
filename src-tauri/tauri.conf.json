@@ -14,8 +14,11 @@
       {
         "label": "main",
         "title": "lpe-reminder",
-        "width": 800,
-        "height": 600
+        "width": 450,
+        "height": 550,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false
       },
       {
         "label": "float",

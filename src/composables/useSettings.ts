@@ -17,6 +17,8 @@ export interface AppSettings {
   floatingWindowHeight: number;
   floatingWindowShowTimer: boolean;
   floatingWindowShowState: boolean;
+  floatingWindowX?: number;
+  floatingWindowY?: number;
 }
 
 const STORAGE_KEY = "lpe-reminder-settings";
@@ -38,6 +40,8 @@ const defaultSettings: AppSettings = {
   floatingWindowHeight: 50,
   floatingWindowShowTimer: true,
   floatingWindowShowState: true,
+  floatingWindowX: undefined,
+  floatingWindowY: undefined,
 };
 
 // 1. 初始化：尝试从 localStorage 读取，失败则使用默认值
