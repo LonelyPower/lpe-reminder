@@ -69,7 +69,7 @@ function getProgress(elapsed: number, target: number): number {
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
-          <span>已超过建议休息时长</span>
+          <span>已超过休息时长</span>
         </div>
 
         <div class="actions">
