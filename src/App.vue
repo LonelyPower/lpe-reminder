@@ -168,7 +168,44 @@ watch(
   }
 );
 
-const breakVisible = computed(() => timer.mode.value === "break");
+// 统一的休息遮罩状态
+const breakOverlayVisible = computed(() => {
+  if (settings.timerMode === "countdown") {
+    return timer.mode.value === "break";
+  } else {
+    return stopwatch.mode.value === "break";
+  }
+});
+
+const breakOverlayElapsed = computed(() => {
+  if (settings.timerMode === "countdown") {
+    return timer.breakElapsedMs.value;
+  } else {
+    return stopwatch.elapsedMs.value;
+  }
+});
+
+const breakOverlayTarget = computed(() => {
+  if (settings.timerMode === "countdown") {
+    return minutesSecondsToMs(
+      settings.breakDurationMinutes,
+      settings.breakDurationSeconds
+    );
+  } else {
+    return stopwatch.breakTargetMs.value;
+  }
+});
+
+const isCountdownMode = computed(() => settings.timerMode === "countdown");
+
+// 统一处理休息结束
+async function handleBreakOverlayEnd() {
+  if (settings.timerMode === "countdown") {
+    await handleCountdownBreakEnd();
+  } else {
+    handleStopwatchBreakEnd();
+  }
+}
 
 function openSettings() {
   showSettings.value = true;
@@ -234,10 +271,16 @@ async function handleCountdownBreakEnd() {
   console.log("[Countdown] Break ended manually by user");
 }
 
-// 处理正计时休息结束
-function handleStopwatchBreakEnd() {
+// 处理正计时休息结束（用户手动点击按钮）
+async function handleStopwatchBreakEnd() {
   const endTime = Date.now();
   const breakDuration = stopwatch.elapsedMs.value;
+  
+  // 取消窗口置顶
+  const win = getCurrentWindow();
+  await safeExecute(async () => {
+    await win.setAlwaysOnTop(false);
+  }, "Cancel window always on top");
   
   // 保存休息记录
   addRecord({
@@ -797,29 +840,13 @@ onBeforeUnmount(() => {
       <HistoryPanel />
     </div>
 
-    <!-- 倒计时休息遮罩 -->
+    <!-- 统一休息遮罩 -->
     <BreakOverlay
-      v-if="settings.timerMode === 'countdown'"
-      :visible="breakVisible"
-      :elapsed-ms="timer.breakElapsedMs.value"
-      :target-ms="
-        minutesSecondsToMs(
-          settings.breakDurationMinutes,
-          settings.breakDurationSeconds
-        )
-      "
-      :is-countdown="true"
-      @end="handleCountdownBreakEnd"
-    />
-
-    <!-- 正计时休息遮罩 -->
-    <BreakOverlay
-      v-if="settings.timerMode === 'stopwatch'"
-      :visible="stopwatch.mode.value === 'break'"
-      :elapsed-ms="stopwatch.elapsedMs.value"
-      :target-ms="stopwatch.breakTargetMs.value"
-      :is-countdown="false"
-      @end="handleStopwatchBreakEnd"
+      :visible="breakOverlayVisible"
+      :elapsed-ms="breakOverlayElapsed"
+      :target-ms="breakOverlayTarget"
+      :is-countdown="isCountdownMode"
+      @end="handleBreakOverlayEnd"
     />
 
     <SettingsDialog :visible="showSettings" @close="closeSettings" />
