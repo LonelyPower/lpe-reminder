@@ -407,8 +407,14 @@ onMounted(async () => {
         console.error("Failed to restore window position", e);
       }
     }
+
+    // 恢夏完成后显示窗口（避免闪现）
+    console.log("✓ Window state restored, showing window");
+    await appWindow.show();
   } catch (error) {
     console.error("Database initialization failed:", error);
+    // 即使出错也要显示窗口
+    await appWindow.show();
   }
   
   // 预加载音频文件

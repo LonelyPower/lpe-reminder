@@ -18,7 +18,8 @@
         "height": 550,
         "decorations": false,
         "transparent": true,
-        "shadow": false
+        "shadow": false,
+        "visible": false
       },
       {
         "label": "float",
