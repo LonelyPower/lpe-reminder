@@ -40,9 +40,8 @@ function handleResetLocal() {
 </script>
 
 <template>
-  <teleport to="body">
-    <div v-if="props.visible" class="backdrop" @click.self="emit('close')">
-      <div class="dialog" role="dialog" aria-modal="true">
+  <div v-if="props.visible" class="backdrop" @click.self="emit('close')">
+    <div class="dialog" role="dialog" aria-modal="true">
         <header class="dialog-header">
           <h2>设置</h2>
           <div class="tabs">
@@ -223,12 +222,11 @@ function handleResetLocal() {
         </footer>
       </div>
     </div>
-  </teleport>
 </template>
 
 <style scoped>
 .backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
