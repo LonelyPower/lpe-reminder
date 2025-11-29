@@ -44,9 +44,9 @@ export const defaultSettings: AppSettings = {
   floatingWindowShowState: true,
   floatingWindowX: undefined,
   floatingWindowY: undefined,
-  windowWidth: 800,
-  windowHeight: 600,
-  theme: "system",
+  windowWidth: 450,
+  windowHeight: 550,
+  theme: "dark",
 };
 
 const settings = reactive<AppSettings>({ ...defaultSettings });
