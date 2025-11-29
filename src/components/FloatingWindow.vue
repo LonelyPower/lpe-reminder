@@ -260,7 +260,7 @@ onMounted(async () => {
 
 .floating-window:hover {
   box-shadow: 0 6px 16px var(--shadow-color);
-  transform: translateY(-1px);
+  /* transform: translateY(-1px); 移除上跳效果以防止上边框被窗口裁剪 */
 }
 
 .time-display {
