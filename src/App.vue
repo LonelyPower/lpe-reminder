@@ -104,7 +104,7 @@ const timer = useTimer({
 
 
   },
-  onBreakEnd: async () => {
+  onBreakEnd: async (silent?: boolean) => {
     // 0. 保存休息记录（使用实际休息时长）
     const endTime = Date.now();
     const actualBreakDuration = timer.breakElapsedMs.value;
@@ -118,7 +118,7 @@ const timer = useTimer({
     console.log("[Countdown] Break record auto-saved:", actualBreakDuration, "ms");
 
     // 1. 播放提示音
-    if (settings.enablerestSound) {
+    if (!silent && settings.enablerestSound) {
       await safeExecute(async () => {
         await playAudio("/notification-chime.mp3", 0.5);
       }, "Play break end sound");
@@ -168,7 +168,44 @@ watch(
   }
 );
 
-const breakVisible = computed(() => timer.mode.value === "break");
+// 统一的休息遮罩状态
+const breakOverlayVisible = computed(() => {
+  if (settings.timerMode === "countdown") {
+    return timer.mode.value === "break";
+  } else {
+    return stopwatch.mode.value === "break";
+  }
+});
+
+const breakOverlayElapsed = computed(() => {
+  if (settings.timerMode === "countdown") {
+    return timer.breakElapsedMs.value;
+  } else {
+    return stopwatch.elapsedMs.value;
+  }
+});
+
+const breakOverlayTarget = computed(() => {
+  if (settings.timerMode === "countdown") {
+    return minutesSecondsToMs(
+      settings.breakDurationMinutes,
+      settings.breakDurationSeconds
+    );
+  } else {
+    return stopwatch.breakTargetMs.value;
+  }
+});
+
+const isCountdownMode = computed(() => settings.timerMode === "countdown");
+
+// 统一处理休息结束
+async function handleBreakOverlayEnd() {
+  if (settings.timerMode === "countdown") {
+    await handleCountdownBreakEnd();
+  } else {
+    handleStopwatchBreakEnd();
+  }
+}
 
 function openSettings() {
   showSettings.value = true;
@@ -230,14 +267,20 @@ async function handleCountdownBreakEnd() {
   }, "Cancel window always on top");
   
   // 结束休息（休息记录已在 onBreakEnd 中自动保存）
-  timer.skipBreak();
+  timer.skipBreak(true);
   console.log("[Countdown] Break ended manually by user");
 }
 
-// 处理正计时休息结束
-function handleStopwatchBreakEnd() {
+// 处理正计时休息结束（用户手动点击按钮）
+async function handleStopwatchBreakEnd() {
   const endTime = Date.now();
   const breakDuration = stopwatch.elapsedMs.value;
+  
+  // 取消窗口置顶
+  const win = getCurrentWindow();
+  await safeExecute(async () => {
+    await win.setAlwaysOnTop(false);
+  }, "Cancel window always on top");
   
   // 保存休息记录
   addRecord({
@@ -300,6 +343,27 @@ onMounted(async () => {
       console.error("Failed to save window state", e);
     }
   };
+
+  // 定义保存悬浮窗位置的函数
+  const saveFloatingWindowPosition = async (forceSaveToDb: boolean = false) => {
+    if (!settings.enableFloatingWindow) return;
+    
+    try {
+      const pos = await safeInvoke<[number, number]>("get_floating_window_position");
+      if (pos) {
+        settings.floatingWindowX = pos[0];
+        settings.floatingWindowY = pos[1];
+        
+        // 如果需要强制保存到数据库（退出时）
+        if (forceSaveToDb) {
+          await saveSetting("floatingWindowX", pos[0].toString());
+          await saveSetting("floatingWindowY", pos[1].toString());
+        }
+      }
+    } catch (e) {
+      console.error("Failed to save floating window position", e);
+    }
+  };
   
   // 初始化数据库并迁移数据
   try {
@@ -315,29 +379,17 @@ onMounted(async () => {
       await migrateFromLocalStorage();
     }
 
-    // 3. 显式等待设置加载完成
-    // useSettings() 内部虽然调用了 loadSettings，但它是异步的且没有暴露 Promise
-    // 这里我们手动调用一次 loadSettings 确保数据已就绪
-    // 注意：由于 useSettings 是单例模式，我们需要一种机制来等待它加载完成
-    // 这里我们简单地通过轮询 settings.windowWidth 是否变化来判断（或者直接依赖 useSettings 的副作用）
-    
-    // 更可靠的方法是：在 App.vue 中直接调用数据库读取逻辑来获取窗口大小，或者改造 useSettings
-    // 这里我们采用直接读取数据库的方式来确保获取到最新的窗口尺寸
-    const { getSettings } = await import("./utils/database");
-    const rows = await getSettings();
-    let savedWidth = settings.windowWidth;
-    let savedHeight = settings.windowHeight;
-    let savedX = settings.windowX;
-    let savedY = settings.windowY;
-
-    for (const row of rows) {
-      if (row.key === "windowWidth") savedWidth = JSON.parse(row.value);
-      if (row.key === "windowHeight") savedHeight = JSON.parse(row.value);
-      if (row.key === "windowX") savedX = JSON.parse(row.value);
-      if (row.key === "windowY") savedY = JSON.parse(row.value);
-    }
+    // 3. 等待设置加载完成（解决竞态问题）
+    const { init: initSettings } = useSettings();
+    await initSettings();
+    console.log("✓ Settings loaded and ready");
 
     // 4. 恢复窗口尺寸和位置
+    const savedWidth = settings.windowWidth;
+    const savedHeight = settings.windowHeight;
+    const savedX = settings.windowX;
+    const savedY = settings.windowY;
+
     if (savedWidth && savedHeight) {
       console.log(`Restoring window size to ${savedWidth}x${savedHeight}`);
       try {
@@ -355,8 +407,14 @@ onMounted(async () => {
         console.error("Failed to restore window position", e);
       }
     }
+
+    // 恢夏完成后显示窗口（避免闪现）
+    console.log("✓ Window state restored, showing window");
+    await appWindow.show();
   } catch (error) {
     console.error("Database initialization failed:", error);
+    // 即使出错也要显示窗口
+    await appWindow.show();
   }
   
   // 预加载音频文件
@@ -408,22 +466,8 @@ onMounted(async () => {
       console.log("[Tray] Quit event received");
       // 保存窗口状态
       await saveWindowState();
-      
-      // 保存悬浮窗位置
-      if (settings.enableFloatingWindow) {
-          try {
-            const pos = await safeInvoke<[number, number]>("get_floating_window_position");
-            if (pos) {
-               settings.floatingWindowX = pos[0];
-               settings.floatingWindowY = pos[1];
-               // 强制保存到数据库
-               await saveSetting("floatingWindowX", pos[0].toString());
-               await saveSetting("floatingWindowY", pos[1].toString());
-            }
-          } catch (e) {
-            console.error("Failed to get floating window position", e);
-          }
-      }
+      // 保存悬浮窗位置（强制保存到数据库）
+      await saveFloatingWindowPosition(true);
       await safeInvoke("app_exit");
     })
   );
@@ -435,19 +479,8 @@ onMounted(async () => {
     
     // 保存窗口状态
     await saveWindowState();
-
     // 保存悬浮窗位置
-    if (settings.enableFloatingWindow) {
-        try {
-          const pos = await safeInvoke<[number, number]>("get_floating_window_position");
-          if (pos) {
-             settings.floatingWindowX = pos[0];
-             settings.floatingWindowY = pos[1];
-          }
-        } catch (e) {
-          console.error("Failed to get floating window position", e);
-        }
-    }
+    await saveFloatingWindowPosition();
 
     const behavior = settings.closeBehavior;
     if (behavior === "quit") {
@@ -517,15 +550,7 @@ onMounted(async () => {
         safeInvoke("toggle_floating_window", { show: true });
       } else {
         // 保存位置
-        try {
-          const pos = await safeInvoke<[number, number]>("get_floating_window_position");
-          if (pos) {
-             settings.floatingWindowX = pos[0];
-             settings.floatingWindowY = pos[1];
-          }
-        } catch (e) {
-          console.error("Failed to get floating window position", e);
-        }
+        await saveFloatingWindowPosition();
         safeInvoke("toggle_floating_window", { show: false });
       }
     },
@@ -585,20 +610,28 @@ onMounted(async () => {
       };
 
       if (settings.timerMode === "countdown") {
+        const isBreakMode = timer.mode.value === "break";
         await appWindow.emit("timer-state-sync", {
           ...commonPayload,
           mode: timer.mode.value,
           remainingMs: timer.remainingMs.value,
           isRunning: timer.isRunning.value,
           timerMode: "countdown",
+          // 休息模式专用字段
+          isBreakMode: isBreakMode,
+          breakElapsedMs: isBreakMode ? timer.breakElapsedMs.value : 0,
         });
       } else {
+        const isBreakMode = stopwatch.mode.value === "break";
         await appWindow.emit("timer-state-sync", {
           ...commonPayload,
           mode: stopwatch.mode.value, // work 或 break
           elapsedMs: stopwatch.elapsedMs.value,
           isRunning: stopwatch.isRunning.value,
           timerMode: "stopwatch",
+          // 休息模式专用字段
+          isBreakMode: isBreakMode,
+          breakElapsedMs: isBreakMode ? stopwatch.elapsedMs.value : 0,
         });
       }
     }, "Sync timer state to floating window");
@@ -611,6 +644,7 @@ onMounted(async () => {
       timer.mode.value, 
       timer.remainingMs.value, 
       timer.isRunning.value,
+      timer.breakElapsedMs.value, // 监听休息已过时长
       stopwatch.mode.value,
       stopwatch.elapsedMs.value,
       stopwatch.isRunning.value
@@ -648,6 +682,16 @@ onMounted(async () => {
       if (settings.timerMode === "stopwatch") {
         stopwatch.stop();
       }
+    })
+  );
+  // 监听悬浮窗请求显示主窗口（休息模式下点击）
+  unlistenFns.value.push(
+    await listen("float-show-main", async () => {
+      console.log("[Float] Show main window requested");
+      await safeExecute(async () => {
+        await appWindow.show();
+        await appWindow.setFocus();
+      }, "Show main window from floating window");
     })
   );
 
@@ -778,29 +822,13 @@ onBeforeUnmount(() => {
       <HistoryPanel />
     </div>
 
-    <!-- 倒计时休息遮罩 -->
+    <!-- 统一休息遮罩 -->
     <BreakOverlay
-      v-if="settings.timerMode === 'countdown'"
-      :visible="breakVisible"
-      :elapsed-ms="timer.breakElapsedMs.value"
-      :target-ms="
-        minutesSecondsToMs(
-          settings.breakDurationMinutes,
-          settings.breakDurationSeconds
-        )
-      "
-      :is-countdown="true"
-      @end="handleCountdownBreakEnd"
-    />
-
-    <!-- 正计时休息遮罩 -->
-    <BreakOverlay
-      v-if="settings.timerMode === 'stopwatch'"
-      :visible="stopwatch.mode.value === 'break'"
-      :elapsed-ms="stopwatch.elapsedMs.value"
-      :target-ms="stopwatch.breakTargetMs.value"
-      :is-countdown="false"
-      @end="handleStopwatchBreakEnd"
+      :visible="breakOverlayVisible"
+      :elapsed-ms="breakOverlayElapsed"
+      :target-ms="breakOverlayTarget"
+      :is-countdown="isCountdownMode"
+      @end="handleBreakOverlayEnd"
     />
 
     <SettingsDialog :visible="showSettings" @close="closeSettings" />

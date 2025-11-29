@@ -30,6 +30,15 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     const delta = now - lastTick;
     lastTick = now;
     elapsedMs.value += delta;
+
+    // 检查休息是否结束
+    if (mode.value === "break" && elapsedMs.value >= breakTargetMs.value && !breakEndTriggered) {
+      breakEndTriggered = true; // 标记已触发
+      // 触发回调
+      if (callbacks?.onBreakEnd) {
+        callbacks.onBreakEnd();
+      }
+    }
   }
 
   function ensureIntervalRunning() {
@@ -75,27 +84,6 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     isRunning.value = true;
     breakEndTriggered = false; // 重置标志
     ensureIntervalRunning();
-    
-    // 检查是否超过目标时长
-    const checkBreakEnd = () => {
-      if (mode.value === "break" && elapsedMs.value >= breakTargetMs.value && !breakEndTriggered) {
-        breakEndTriggered = true; // 标记已触发
-        // 触发回调
-        if (callbacks?.onBreakEnd) {
-          callbacks.onBreakEnd();
-        }
-        // 注意：不自动停止，允许超时继续计时
-      }
-    };
-    
-    // 监听进度
-    const checkInterval = window.setInterval(() => {
-      if (mode.value !== "break" || !isRunning.value) {
-        clearInterval(checkInterval);
-        return;
-      }
-      checkBreakEnd();
-    }, 500);
   }
 
   /**
