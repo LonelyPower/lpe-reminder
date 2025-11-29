@@ -99,10 +99,11 @@ function getProgress(elapsed: number, target: number): number {
   text-align: center;
   max-width: 480px;
   width: 100%;
-  background: #FFFFFF;
+  background: var(--bg-card);
   padding: 40px;
   border-radius: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px var(--shadow-color);
+  color: var(--text-primary);
 }
 
 .icon-wrapper {
@@ -112,14 +113,14 @@ function getProgress(elapsed: number, target: number): number {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: #ECFDF5;
-  color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--primary-color);
   margin-bottom: 24px;
   animation: pulse 2s ease-in-out infinite;
 }
 
 .icon-wrapper svg {
-  color: #059669;
+  color: var(--primary-color);
 }
 
 @keyframes pulse {
@@ -139,7 +140,7 @@ function getProgress(elapsed: number, target: number): number {
 .title {
   font-size: 24px;
   font-weight: 600;
-  color: #1F2937;
+  color: var(--text-primary);
   margin: 0 0 24px;
 }
 
@@ -154,7 +155,7 @@ function getProgress(elapsed: number, target: number): number {
 .time {
   font-size: 64px;
   font-weight: 700;
-  color: #059669;
+  color: var(--primary-color);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -162,24 +163,24 @@ function getProgress(elapsed: number, target: number): number {
 .target {
   font-size: 24px;
   font-weight: 500;
-  color: #9CA3AF;
+  color: var(--text-muted);
 }
 
 .eye-tips {
   font-size: 15px;
-  color: #4B5563;
+  color: var(--text-secondary);
   text-align: center;
   margin: 0 0 32px 0;
   padding: 16px;
-  background: #F9FAFB;
+  background: var(--bg-secondary);
   border-radius: 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--border-color);
 }
 
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: #F3F4F6;
+  background: var(--bg-secondary);
   border-radius: 999px;
   overflow: hidden;
   margin-bottom: 32px;
@@ -187,7 +188,7 @@ function getProgress(elapsed: number, target: number): number {
 
 .progress-fill {
   height: 100%;
-  background: #059669;
+  background: var(--primary-color);
   border-radius: 999px;
   transition: width 0.2s linear;
 }
@@ -198,7 +199,7 @@ function getProgress(elapsed: number, target: number): number {
   justify-content: center;
   gap: 8px;
   padding: 12px 20px;
-  background: #FEF3C7;
+  background: rgba(254, 243, 199, 0.9);
   border: 1px solid #FCD34D;
   border-radius: 12px;
   color: #92400E;
@@ -207,9 +208,21 @@ function getProgress(elapsed: number, target: number): number {
   margin-bottom: 24px;
 }
 
+/* Dark mode adjustment for overtime notice */
+:global(.dark) .overtime-notice {
+  background: rgba(146, 64, 14, 0.2);
+  border-color: rgba(252, 211, 77, 0.3);
+  color: #FCD34D;
+}
+
+.overtime-notice svg {
+  flex-shrink: 0;
+}
+
 .actions {
   display: flex;
   justify-content: center;
+  gap: 16px;
 }
 
 .btn {
@@ -220,85 +233,23 @@ function getProgress(elapsed: number, target: number): number {
   cursor: pointer;
   border: none;
   transition: all 0.2s;
+  min-width: 140px;
 }
 
 .btn-primary {
-  background: #059669;
+  background: var(--primary-color);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
 }
 
 .btn-primary:hover {
-  background: #047857;
+  background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3);
 }
 
 .btn-primary:active {
   transform: translateY(0);
-}
-
-.margin-bottom {
-  margin-bottom: 32px;
-  animation: shake 0.5s ease-in-out;
-}
-
-@keyframes shake {
-
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-5px);
-  }
-
-  75% {
-    transform: translateX(5px);
-  }
-}
-
-.overtime-notice svg {
-  flex-shrink: 0;
-}
-
-.actions {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-}
-
-.btn {
-  padding: 14px 32px;
-  font-size: 16px;
-  font-weight: 600;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 140px;
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.btn-primary {
-  background: #ffffff;
-  color: #059669;
-}
-
-.btn-primary:hover {
-  background: #f0fdf4;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 /* 动画 */

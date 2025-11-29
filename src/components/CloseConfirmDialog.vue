@@ -67,19 +67,22 @@ function handleCancel() {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9500;
+  backdrop-filter: blur(4px);
 }
 
 .dialog {
   width: min(400px, 90vw);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--bg-card);
   padding: 24px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 18px 40px var(--shadow-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .dialog-header {
@@ -93,6 +96,7 @@ function handleCancel() {
   font-size: 18px;
   font-weight: 600;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .close-btn {
@@ -104,19 +108,19 @@ function handleCancel() {
   padding: 0;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .close-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .close-btn:active {
-  background: #e5e7eb;
+  background: var(--bg-secondary);
 }
 
 .dialog-body {
@@ -125,7 +129,7 @@ function handleCancel() {
 
 .message {
   font-size: 14px;
-  color: #374151;
+  color: var(--text-primary);
   line-height: 1.6;
   margin-bottom: 16px;
 }
@@ -135,7 +139,7 @@ function handleCancel() {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -143,6 +147,7 @@ function handleCancel() {
   width: 16px;
   height: 16px;
   cursor: pointer;
+  accent-color: var(--primary-color);
 }
 
 .dialog-footer {
@@ -161,23 +166,23 @@ function handleCancel() {
 }
 
 .primary {
-  background: #38bdf8;
+  background: var(--primary-color);
   color: #ffffff;
-  border-color: #0ea5e9;
+  border-color: var(--primary-color);
 }
 
 .primary:hover {
-  background: #0ea5e9;
+  background: var(--primary-hover);
 }
 
 .secondary {
   background: transparent;
-  color: #6b7280;
-  border: 1px solid #d1d5db;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .secondary:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 </style>

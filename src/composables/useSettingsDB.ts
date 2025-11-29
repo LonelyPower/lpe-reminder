@@ -22,6 +22,7 @@ export interface AppSettings {
   floatingWindowY?: number;
   windowWidth?: number;
   windowHeight?: number;
+  theme: "light" | "dark" | "system";
 }
 
 export const defaultSettings: AppSettings = {
@@ -45,6 +46,7 @@ export const defaultSettings: AppSettings = {
   floatingWindowY: undefined,
   windowWidth: 800,
   windowHeight: 600,
+  theme: "system",
 };
 
 const settings = reactive<AppSettings>({ ...defaultSettings });

@@ -604,6 +604,40 @@ onMounted(async () => {
     })
   );
 
+  // 监听主题变化
+  watch(
+    () => settings.theme,
+    (newTheme) => {
+      const root = document.documentElement;
+      if (newTheme === 'dark') {
+        root.classList.add('dark');
+      } else if (newTheme === 'light') {
+        root.classList.remove('dark');
+      } else {
+        // System theme
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      }
+    },
+    { immediate: true }
+  );
+
+  // 监听系统主题变化
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (settings.theme === 'system') {
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    });
+  }
+
   // 初始同步一次状态
   await syncFloatingWindowState();
 });
@@ -738,6 +772,36 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+:root {
+  --bg-app: #F5F7F5;
+  --bg-card: #FFFFFF;
+  --bg-secondary: #E5E7EB;
+  --bg-hover: #D1D5DB;
+  --text-primary: #1F2937;
+  --text-secondary: #4B5563;
+  --text-muted: #9CA3AF;
+  --primary-color: #059669;
+  --primary-hover: #047857;
+  --border-color: #E5E7EB;
+  --shadow-color: rgba(0, 0, 0, 0.05);
+  --overlay-bg: rgba(0, 0, 0, 0.3);
+}
+
+.dark {
+  --bg-app: #111827;
+  --bg-card: #1F2937;
+  --bg-secondary: #374151;
+  --bg-hover: #4B5563;
+  --text-primary: #F9FAFB;
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
+  --primary-color: #10B981;
+  --primary-hover: #059669;
+  --border-color: #374151;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -751,8 +815,8 @@ body {
 .app-root {
  height: 100vh;
   padding: 12px;
-  background-color: #F5F7F5;
-  color: #374151;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
   font-family: system-ui, -apple-system, sans-serif;
     border-radius: 16px; /* 圆角 */
   overflow: hidden;
@@ -760,6 +824,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .app-header {
@@ -776,7 +841,7 @@ body {
 .app-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1F2937;
+  color: var(--text-primary);
   letter-spacing: -0.025em;
 }
 
@@ -790,8 +855,8 @@ body {
   height: 36px;
   border-radius: 12px;
   border: none;
-  background: #E5E7EB;
-  color: #4B5563;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 0; /* Hide text, use icon if possible, or just keep text small */
   cursor: pointer;
   display: flex;
@@ -801,8 +866,8 @@ body {
 }
 
 .icon-btn:hover {
-  background: #D1D5DB;
-  color: #1F2937;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .settings-btn::before {
@@ -825,7 +890,7 @@ body {
   margin: 0 0 16px;
   display: flex;
   padding: 4px;
-  background: #E5E7EB;
+  background: var(--bg-secondary);
   border-radius: 16px;
 }
 
@@ -834,7 +899,7 @@ body {
   padding: 8px 16px;
   border: none;
   background: transparent;
-  color: #6B7280;
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 500;
   border-radius: 12px;
@@ -843,13 +908,13 @@ body {
 }
 
 .tab-btn:hover {
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .tab-btn.active {
-  background: #FFFFFF;
-  color: #059669;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: var(--bg-card);
+  color: var(--primary-color);
+  box-shadow: 0 2px 4px var(--shadow-color);
   font-weight: 600;
 }
 

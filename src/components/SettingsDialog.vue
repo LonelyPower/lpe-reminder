@@ -62,6 +62,21 @@ function handleResetLocal() {
 
           <!-- 常规设置区域 -->
           <div v-show="activeTab === 'general'" class="tab-content">
+            <!-- 外观设置 -->
+            <div class="settings-section">
+              <h3 class="section-title">外观</h3>
+              <div class="form-group">
+                <label>
+                  <span>主题模式</span>
+                  <select v-model="localSettings.theme" class="select-input">
+                    <option value="system">跟随系统</option>
+                    <option value="light">浅色模式</option>
+                    <option value="dark">深色模式</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
             <!-- 计时设置 -->
             <div class="settings-section">
               <h3 class="section-title">计时设置</h3>
@@ -215,22 +230,25 @@ function handleResetLocal() {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9000;
+  backdrop-filter: blur(4px);
 }
 
 .dialog {
   width: min(480px, 90vw);
   max-height: 85vh;
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--bg-card);
   padding: 24px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 18px 40px var(--shadow-color);
   display: flex;
   flex-direction: column;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .dialog-header {
@@ -242,13 +260,14 @@ function handleResetLocal() {
   font-size: 20px;
   margin-bottom: 16px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .tabs {
   display: flex;
   gap: 8px;
   padding: 4px;
-  background: #f3f4f6;
+  background: var(--bg-secondary);
   border-radius: 8px;
 }
 
@@ -257,7 +276,7 @@ function handleResetLocal() {
   padding: 8px 12px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   border-radius: 6px;
@@ -266,14 +285,14 @@ function handleResetLocal() {
 }
 
 .tab-btn:hover {
-  color: #374151;
-  background: rgba(255, 255, 255, 0.5);
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .tab-btn.active {
-  background: #ffffff;
-  color: #0ea5e9;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: var(--bg-card);
+  color: var(--primary-color);
+  box-shadow: 0 1px 2px var(--shadow-color);
 }
 
 .dialog-body {
@@ -284,7 +303,6 @@ function handleResetLocal() {
   overflow-y: auto;
   flex: 1;
   padding-right: 4px;
-  /* 避免滚动条遮挡内容 */
 }
 
 .tab-content {
@@ -294,8 +312,8 @@ function handleResetLocal() {
 }
 
 .settings-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -306,10 +324,10 @@ function handleResetLocal() {
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .section-header {
@@ -317,14 +335,14 @@ function handleResetLocal() {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 4px;
 }
 
 .section-title-inline {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -333,7 +351,7 @@ function handleResetLocal() {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #374151;
+  color: var(--text-primary);
   cursor: pointer;
   font-weight: normal;
 }
@@ -342,6 +360,7 @@ function handleResetLocal() {
   width: 16px;
   height: 16px;
   cursor: pointer;
+  accent-color: var(--primary-color);
 }
 
 .form-group label {
@@ -349,16 +368,18 @@ function handleResetLocal() {
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .form-group input[type="number"] {
   width: 60px;
   padding: 6px 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
   text-align: right;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .time-inputs {
@@ -369,7 +390,7 @@ function handleResetLocal() {
 
 .unit {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .checkbox-group label {
@@ -382,6 +403,7 @@ function handleResetLocal() {
   width: 18px;
   height: 18px;
   cursor: pointer;
+  accent-color: var(--primary-color);
 }
 
 .checkbox-row {
@@ -393,16 +415,17 @@ function handleResetLocal() {
 
 .select-input {
   padding: 6px 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
-  background: white;
+  background: var(--bg-card);
+  color: var(--text-primary);
   cursor: pointer;
   min-width: 140px;
 }
 
 .select-input:hover {
-  border-color: #9ca3af;
+  border-color: var(--text-secondary);
 }
 
 .dialog-footer {
@@ -421,22 +444,22 @@ function handleResetLocal() {
 }
 
 .primary {
-  background: #38bdf8;
+  background: var(--primary-color);
   color: #ffffff;
-  border-color: #0ea5e9;
+  border-color: var(--primary-color);
 }
 
 .primary:hover {
-  background: #0ea5e9;
+  background: var(--primary-hover);
 }
 
 .ghost {
   background: transparent;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .ghost:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 </style>

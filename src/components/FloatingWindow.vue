@@ -207,17 +207,17 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 8px;
   padding: 0 12px;
-  background: #FFFFFF;
+  background: var(--bg-card);
   border-radius: 12px;
   user-select: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  border: 1px solid var(--border-color);
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .floating-window:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 16px var(--shadow-color);
   transform: translateY(-1px);
 }
 
@@ -268,15 +268,15 @@ onMounted(async () => {
   flex-shrink: 0;
   height: 100%;
   cursor: move;
-  color: #9CA3AF;
+  color: var(--text-secondary);
   transition: color 0.2s;
 }
 
 .drag-handle:hover {
-  color: #6B7280;
+  color: var(--text-primary);
 }
 
 .drag-handle:active {
-  color: #4B5563;
+  color: var(--text-primary);
 }
 </style>

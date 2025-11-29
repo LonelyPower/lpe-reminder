@@ -75,14 +75,14 @@ function formatDeviceId(id: string): string {
 .user-info-section {
   margin-bottom: 24px;
   padding: 16px;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
 }
 
@@ -94,18 +94,18 @@ function formatDeviceId(id: string): string {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .device-id {
   padding: 10px 12px;
-  background: #ffffff;
-  border: 1px solid #d1d5db;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 13px;
   font-family: 'Courier New', monospace;
-  color: #6b7280;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -115,22 +115,24 @@ function formatDeviceId(id: string): string {
 .phone-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   transition: all 0.2s;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .phone-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 .save-btn {
   width: 100%;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: var(--primary-color);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -142,7 +144,8 @@ function formatDeviceId(id: string): string {
 
 .save-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: var(--primary-hover);
+  box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .save-btn:disabled {

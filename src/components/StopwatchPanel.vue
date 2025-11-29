@@ -76,31 +76,32 @@ function onPrimaryClick() {
   margin: 0;
   padding: 32px 24px;
   border-radius: 24px;
-  background: #FFFFFF;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  background: var(--bg-card);
+  box-shadow: 0 4px 20px var(--shadow-color);
   text-align: center;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   box-sizing: border-box;
+  transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #6B7280;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   font-weight: 500;
 }
 
 .subtitle strong {
-  color: #059669;
+  color: var(--primary-color);
 }
 
 .time-display {
   font-size: 64px;
   font-weight: 700;
-  color: #1F2937;
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -131,13 +132,13 @@ function onPrimaryClick() {
 }
 
 .primary {
-  background: #059669;
+  background: var(--primary-color);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
 }
 
 .primary:hover:not(:disabled) {
-  background: #047857;
+  background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3);
 }
@@ -147,12 +148,12 @@ function onPrimaryClick() {
 }
 
 .ghost {
-  background: #F3F4F6;
-  color: #4B5563;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .ghost:hover:not(:disabled) {
-  background: #E5E7EB;
-  color: #1F2937;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 </style>

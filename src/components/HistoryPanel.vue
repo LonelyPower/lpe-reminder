@@ -181,10 +181,10 @@ function handleClearAll() {
 }
 
 .stat-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px var(--shadow-color);
   border-left: 4px solid transparent;
 }
 
@@ -206,7 +206,7 @@ function handleClearAll() {
 
 .stat-label {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
@@ -218,14 +218,14 @@ function handleClearAll() {
 
 .stat-count {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .records-section {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px var(--shadow-color);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -244,6 +244,7 @@ function handleClearAll() {
   font-size: 16px;
   font-weight: 600;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .clear-btn {
@@ -251,21 +252,21 @@ function handleClearAll() {
   font-size: 13px;
   color: #ef4444;
   background: transparent;
-  border: 1px solid #fecaca;
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .clear-btn:hover {
-  background: #fef2f2;
+  background: rgba(239, 68, 68, 0.1);
   border-color: #ef4444;
 }
 
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #9ca3af;
+  color: var(--text-muted);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -298,12 +299,12 @@ function handleClearAll() {
   gap: 12px;
   padding: 12px;
   border-radius: 8px;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   transition: background 0.2s;
 }
 
 .record-item:hover {
-  background: #f3f4f6;
+  background: var(--bg-hover);
 }
 
 .record-indicator {
@@ -337,13 +338,13 @@ function handleClearAll() {
 .record-type {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
 .record-name {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -357,13 +358,13 @@ function handleClearAll() {
 .record-duration {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
 .record-time {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .delete-btn {
@@ -375,7 +376,7 @@ function handleClearAll() {
   padding: 0;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
@@ -383,7 +384,7 @@ function handleClearAll() {
 }
 
 .delete-btn:hover {
-  background: #fee2e2;
+  background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
 }
 
@@ -393,16 +394,16 @@ function handleClearAll() {
 }
 
 .records-list::-webkit-scrollbar-track {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
   border-radius: 3px;
 }
 
 .records-list::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--border-color);
   border-radius: 3px;
 }
 
 .records-list::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--text-secondary);
 }
 </style>
