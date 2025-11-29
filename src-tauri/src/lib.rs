@@ -260,7 +260,13 @@ pub fn run() {
             let app_data_dir = app.path().app_data_dir().expect("Failed to get app data dir");
             std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
             
-            let db_path = app_data_dir.join("lpe_reminder.db");
+            // 开发环境和生产环境使用不同的数据库文件，避免数据冲突
+            #[cfg(debug_assertions)]
+            let db_filename = "lpe_reminder_dev.db";
+            #[cfg(not(debug_assertions))]
+            let db_filename = "lpe_reminder.db";
+
+            let db_path = app_data_dir.join(db_filename);
             println!("Database path: {:?}", db_path);
             
             let database = Database::new(db_path).expect("Failed to initialize database");
