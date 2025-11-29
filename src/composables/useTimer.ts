@@ -6,7 +6,7 @@ export interface UseTimerOptions {
   workDurationMs?: number;
   breakDurationMs?: number;
   onWorkEnd?: () => void;
-  onBreakEnd?: () => void;
+  onBreakEnd?: (silent?: boolean) => void;
 }
 
 /**
@@ -130,11 +130,12 @@ export function useTimer(options: UseTimerOptions = {}) {
    * 跳过当前休息：仅在 break 模式下生效
    * - 立即切到工作
    * - 保持 isRunning 状态不变（如果原本在计时，则继续走）
+   * @param silent 是否静音（不播放提示音）
    */
-  function skipBreak() {
+  function skipBreak(silent: boolean = false) {
     if (mode.value !== "break") return;
     setMode("work");
-    options.onBreakEnd?.();
+    options.onBreakEnd?.(silent);
     if (isRunning.value) {
       ensureIntervalRunning();
     }

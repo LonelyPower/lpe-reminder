@@ -104,7 +104,7 @@ const timer = useTimer({
 
 
   },
-  onBreakEnd: async () => {
+  onBreakEnd: async (silent?: boolean) => {
     // 0. 保存休息记录（使用实际休息时长）
     const endTime = Date.now();
     const actualBreakDuration = timer.breakElapsedMs.value;
@@ -118,7 +118,7 @@ const timer = useTimer({
     console.log("[Countdown] Break record auto-saved:", actualBreakDuration, "ms");
 
     // 1. 播放提示音
-    if (settings.enablerestSound) {
+    if (!silent && settings.enablerestSound) {
       await safeExecute(async () => {
         await playAudio("/notification-chime.mp3", 0.5);
       }, "Play break end sound");
@@ -230,7 +230,7 @@ async function handleCountdownBreakEnd() {
   }, "Cancel window always on top");
   
   // 结束休息（休息记录已在 onBreakEnd 中自动保存）
-  timer.skipBreak();
+  timer.skipBreak(true);
   console.log("[Countdown] Break ended manually by user");
 }
 
