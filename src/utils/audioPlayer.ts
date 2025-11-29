@@ -9,14 +9,15 @@ export async function playAudio(
   volume: number = 0.5
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const audio = new Audio(audioPath);
+    const audio = new Audio();
     audio.volume = Math.max(0, Math.min(1, volume)); // 限制在 0-1 范围
 
     // 错误处理
     const handleError = (error: Event | string | Error) => {
       console.error(`[Audio] Failed to play ${audioPath}:`, error);
       cleanup();
-      reject(error);
+      // 不 reject，避免阻塞主流程，只是打印错误
+      resolve(); 
     };
 
     // 清理函数
@@ -24,6 +25,7 @@ export async function playAudio(
       audio.removeEventListener("canplaythrough", handleCanPlay);
       audio.removeEventListener("error", handleError);
       audio.removeEventListener("ended", handleEnded);
+      audio.pause();
       audio.src = "";
     };
 
@@ -50,7 +52,8 @@ export async function playAudio(
     audio.addEventListener("error", handleError, { once: true });
     audio.addEventListener("ended", handleEnded, { once: true });
 
-    // 开始加载
+    // 设置源，开始加载
+    audio.src = audioPath;
     audio.load();
   });
 }
