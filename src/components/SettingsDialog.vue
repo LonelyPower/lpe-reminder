@@ -247,6 +247,7 @@ function handleResetLocal() {
   flex-direction: column;
   color: var(--text-primary);
   border: 1px solid var(--border-color);
+  overflow: hidden; /* 确保子元素不溢出圆角 */
 }
 
 .dialog-header {
