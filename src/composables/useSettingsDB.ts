@@ -37,7 +37,7 @@ export const defaultSettings: AppSettings = {
   enablerestSound: true,
   enableNotification: true,
   closeBehavior: "ask",
-  enableFloatingWindow: false,
+  enableFloatingWindow: true,
   floatingWindowWidth: 150,
   floatingWindowHeight: 50,
   floatingWindowShowTimer: true,
