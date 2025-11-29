@@ -22,6 +22,8 @@ export interface AppSettings {
   floatingWindowY?: number;
   windowWidth?: number;
   windowHeight?: number;
+  windowX?: number;
+  windowY?: number;
   theme: "light" | "dark" | "system";
 }
 
@@ -46,6 +48,8 @@ export const defaultSettings: AppSettings = {
   floatingWindowY: undefined,
   windowWidth: 450,
   windowHeight: 550,
+  windowX: undefined,
+  windowY: undefined,
   theme: "dark",
 };
 

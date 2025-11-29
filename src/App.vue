@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { getCurrentWindow, LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
 import {
   isPermissionGranted,
   requestPermission,
@@ -277,20 +277,27 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 onMounted(async () => {
   const appWindow = getCurrentWindow();
 
-  // 定义保存窗口尺寸的函数
-  const saveWindowSize = async () => {
+  // 定义保存窗口状态（尺寸和位置）的函数
+  const saveWindowState = async () => {
     try {
       const size = await appWindow.innerSize();
+      const position = await appWindow.innerPosition();
       const factor = await appWindow.scaleFactor();
+      
       const logicalSize = size.toLogical(factor);
+      const logicalPosition = position.toLogical(factor);
       
       settings.windowWidth = logicalSize.width;
       settings.windowHeight = logicalSize.height;
+      settings.windowX = logicalPosition.x;
+      settings.windowY = logicalPosition.y;
       
       await saveSetting("windowWidth", logicalSize.width.toString());
       await saveSetting("windowHeight", logicalSize.height.toString());
+      await saveSetting("windowX", logicalPosition.x.toString());
+      await saveSetting("windowY", logicalPosition.y.toString());
     } catch (e) {
-      console.error("Failed to save window size", e);
+      console.error("Failed to save window state", e);
     }
   };
   
@@ -320,19 +327,32 @@ onMounted(async () => {
     const rows = await getSettings();
     let savedWidth = settings.windowWidth;
     let savedHeight = settings.windowHeight;
+    let savedX = settings.windowX;
+    let savedY = settings.windowY;
 
     for (const row of rows) {
       if (row.key === "windowWidth") savedWidth = JSON.parse(row.value);
       if (row.key === "windowHeight") savedHeight = JSON.parse(row.value);
+      if (row.key === "windowX") savedX = JSON.parse(row.value);
+      if (row.key === "windowY") savedY = JSON.parse(row.value);
     }
 
-    // 4. 恢复窗口尺寸
+    // 4. 恢复窗口尺寸和位置
     if (savedWidth && savedHeight) {
       console.log(`Restoring window size to ${savedWidth}x${savedHeight}`);
       try {
         await appWindow.setSize(new LogicalSize(savedWidth, savedHeight));
       } catch (e) {
         console.error("Failed to restore window size", e);
+      }
+    }
+    
+    if (savedX !== undefined && savedY !== undefined) {
+      console.log(`Restoring window position to (${savedX}, ${savedY})`);
+      try {
+        await appWindow.setPosition(new LogicalPosition(savedX, savedY));
+      } catch (e) {
+        console.error("Failed to restore window position", e);
       }
     }
   } catch (error) {
@@ -386,8 +406,8 @@ onMounted(async () => {
   unlistenFns.value.push(
     await listen("tray-quit", async () => {
       console.log("[Tray] Quit event received");
-      // 保存窗口尺寸
-      await saveWindowSize();
+      // 保存窗口状态
+      await saveWindowState();
       
       // 保存悬浮窗位置
       if (settings.enableFloatingWindow) {
@@ -413,8 +433,8 @@ onMounted(async () => {
     console.log("[CloseRequested] Triggered, behavior:", settings.closeBehavior);
     event.preventDefault(); // 始终阻止默认行为
     
-    // 保存窗口尺寸
-    await saveWindowSize();
+    // 保存窗口状态
+    await saveWindowState();
 
     // 保存悬浮窗位置
     if (settings.enableFloatingWindow) {
