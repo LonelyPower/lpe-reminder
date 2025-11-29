@@ -227,7 +227,7 @@ onMounted(async () => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: 2px;
   font-weight: 700;
