@@ -518,14 +518,15 @@ onMounted(async () => {
 
   // 监听悬浮窗显示设置变化
   const stopFloatingWindowDisplayWatch = watch(
-    () => [settings.floatingWindowShowTimer, settings.floatingWindowShowState],
-    ([showTimer, showState]) => {
+    () => [settings.floatingWindowShowTimer, settings.floatingWindowShowState, settings.theme],
+    ([showTimer, showState, theme]) => {
       if (settings.enableFloatingWindow) {
-        console.log("[FloatingWindow] Display settings:", { showTimer, showState });
+        console.log("[FloatingWindow] Display settings:", { showTimer, showState, theme });
         safeExecute(async () => {
           await appWindow.emit("float-display-settings-sync", { 
             showTimer: showTimer as boolean, 
-            showState: showState as boolean 
+            showState: showState as boolean,
+            theme: theme as string
           });
         }, "Sync display settings to floating window");
       }
@@ -772,36 +773,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
-:root {
-  --bg-app: #F5F7F5;
-  --bg-card: #FFFFFF;
-  --bg-secondary: #E5E7EB;
-  --bg-hover: #D1D5DB;
-  --text-primary: #1F2937;
-  --text-secondary: #4B5563;
-  --text-muted: #9CA3AF;
-  --primary-color: #059669;
-  --primary-hover: #047857;
-  --border-color: #E5E7EB;
-  --shadow-color: rgba(0, 0, 0, 0.05);
-  --overlay-bg: rgba(0, 0, 0, 0.3);
-}
-
-.dark {
-  --bg-app: #111827;
-  --bg-card: #1F2937;
-  --bg-secondary: #374151;
-  --bg-hover: #4B5563;
-  --text-primary: #F9FAFB;
-  --text-secondary: #D1D5DB;
-  --text-muted: #9CA3AF;
-  --primary-color: #10B981;
-  --primary-hover: #059669;
-  --border-color: #374151;
-  --shadow-color: rgba(0, 0, 0, 0.3);
-  --overlay-bg: rgba(0, 0, 0, 0.6);
-}
-
 body {
   margin: 0;
   padding: 0;

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { formatTime } from "../utils/timeUtils";
 import type { TimerMode } from "../composables/useTimer";
-import { useSettings } from "../composables/useSettings";
+import { useSettings } from "../composables/useSettingsDB";
 
 const { settings } = useSettings();
 
@@ -134,11 +134,45 @@ function handleTimeClick() {
   handleClick();
 }
 
+const currentTheme = ref("system");
+
+function applyTheme(theme: string) {
+  currentTheme.value = theme;
+  const root = document.documentElement;
+  if (theme === "dark") {
+    root.classList.add("dark");
+  } else if (theme === "light") {
+    root.classList.remove("dark");
+  } else {
+    // System
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }
+}
+
+watch(() => settings.theme, (newTheme) => {
+  if (newTheme) applyTheme(newTheme);
+}, { immediate: true });
+
 onMounted(async () => {
   const win = getCurrentWindow();
 
   // 设置窗口始终置顶
   await win.setAlwaysOnTop(true);
+
+  // 监听系统主题变化
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    if (currentTheme.value === "system") {
+      if (e.matches) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+  });
 
   // 监听主窗口同步的计时器状态
   await listen<any>(
@@ -168,11 +202,14 @@ onMounted(async () => {
   );
 
   // 监听显示设置变化
-  await listen<{ showTimer: boolean; showState: boolean }>(
+  await listen<{ showTimer: boolean; showState: boolean; theme?: string }>(
     "float-display-settings-sync",
     (event) => {
       showTimer.value = event.payload.showTimer;
       showState.value = event.payload.showState;
+      if (event.payload.theme) {
+        applyTheme(event.payload.theme);
+      }
     }
   );
 });
