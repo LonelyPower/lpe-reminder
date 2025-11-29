@@ -779,10 +779,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+html,
 body {
   margin: 0;
   padding: 0;
-  background: transparent;
+  background: transparent !important;
   font-family: system-ui, -apple-system, sans-serif;
   overflow: hidden; /* 防止出现滚动条 */
 }
