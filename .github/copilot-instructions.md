@@ -1,300 +1,237 @@
 # LPE Reminder - AI 编程指令手册
 
-> **架构哲学**: 业务逻辑与UI严格分离，跨平台复用优先，类型安全强制执行
+> **架构核心**: Rust 主导数据持久化，Vue 专注 UI 渲染，双窗口通过 Tauri Event 同步
 
-## 🏗️ 项目概览
+## 🏗️ 技术栈与核心决策
 
-### 技术栈
-- **前端**: Vue 3.5 + TypeScript 5.6 + Vite 6.4 + Composition API (`<script setup>`)
-- **桌面壳**: Tauri v2.9 (Rust 1.x)
-- **包管理器**: **pnpm** (强制使用，禁止npm/yarn)
-- **状态管理**: Vue Composables + Vue Reactivity System
-- **数据持久化**: localStorage (前端) / Tauri Store (计划中)
-- **目标平台**: Windows/macOS/Linux 桌面 + Android 移动端 (iOS 待定)
+- **前端**: Vue 3.5 (Composition API) + TypeScript 5.6 + Vite 6.0 多入口构建
+- **后端**: Tauri v2 + Rust (SQLite 通过 `rusqlite` 直接管理)
+- **包管理**: **pnpm 强制使用** (npm/yarn 禁止)
+- **数据架构**: **前端禁止直接操作数据库**，所有 CRUD 通过 Rust Tauri Commands 完成
+- **窗口系统**: 主窗口 (main) + 悬浮窗 (float)，独立 HTML 入口，通过 Tauri Event 双向通信
 
-### 目录结构规范
-```
-lpe-reminder/
-├── src/                          # 前端代码 (跨平台可复用)
-│   ├── main.ts                   # Vue 应用入口
-│   ├── App.vue                   # 根组件 (生命周期协调者)
-│   ├── components/               # 纯UI组件 (无状态逻辑)
-│   │   ├── TimerPanel.vue        # 计时器主面板
-│   │   ├── BreakOverlay.vue      # 休息全屏遮罩
-│   │   ├── SettingsDialog.vue    # 设置对话框
-│   │   └── CloseConfirmDialog.vue # 关闭确认对话框
-│   ├── composables/              # 业务逻辑层 (可跨平台复用)
-│   │   ├── useTimer.ts           # 计时器状态机 (核心逻辑)
-│   │   └── useSettings.ts        # 设置管理 + localStorage持久化
-│   └── assets/                   # 静态资源 (图片/字体)
-├── public/                       # 公共资源 (打包时直接复制)
-│   ├── notification-piano.mp3    # 工作结束提示音
-│   └── notification-chime.mp3    # 休息结束提示音
-├── src-tauri/                    # Tauri (Rust) 后端代码
-│   ├── src/
-│   │   ├── main.rs               # 入口 (调用lib.rs::run())
-│   │   └── lib.rs                # 核心逻辑 (插件/命令/托盘/菜单)
-│   ├── Cargo.toml                # Rust 依赖清单
-│   ├── tauri.conf.json           # Tauri 配置 (窗口/构建/打包)
-│   ├── capabilities/
-│   │   └── default.json          # 权限配置 (IPC/插件白名单)
-│   └── icons/                    # 应用图标 + 托盘图标
-│       ├── icon.{ico,icns,png}   # 多平台应用图标
-│       ├── power-tray-idle.png   # 托盘图标 - 空闲状态
-│       ├── power-tray-busy.png   # 托盘图标 - 工作/休息中
-│       └── power-tray-pause.png  # 托盘图标 - 暂停状态
-├── vite.config.ts                # Vite 构建配置 (端口1420固定)
-├── tsconfig.json                 # TypeScript 编译配置
-├── package.json                  # 前端依赖 + 脚本命令
-└── pnpm-lock.yaml                # 依赖锁定文件 (勿手动修改)
-```
+## 📂 关键文件路径速查
+
+### 前端入口 (双窗口架构)
+- `index.html` + `src/main.ts` → 主窗口 (label: "main")
+- `float-window.html` + `src/float-main.ts` → 悬浮窗 (label: "float")
+- `vite.config.ts` 配置多入口构建，端口固定 1420
+
+### 业务逻辑层 (平台无关)
+- `src/composables/useTimer.ts` - 倒计时状态机 (200ms tick + Date.now() 防漂移)
+- `src/composables/useStopwatch.ts` - 正计时器 (支持工作后强制休息)
+- `src/composables/useSettingsDB.ts` - 设置管理 (通过 Rust 读写 SQLite)
+- `src/composables/useTimerHistoryDB.ts` - 历史记录 (同上)
+
+### Rust 数据层 (唯一数据源)
+- `src-tauri/src/db.rs` - SQLite 操作封装 (users/settings/timer_records 三表)
+- `src-tauri/src/lib.rs` - Tauri Commands 注册 + 托盘图标缓存 (IconCache)
+- `src-tauri/capabilities/default.json` - 权限白名单 (**新增 API 必须声明**)
+
+### UI 组件 (纯展示层)
+- `src/App.vue` - 主窗口根组件 (协调计时器/设置/历史面板切换)
+- `src/components/FloatingWindow.vue` - 悬浮窗 (接收 `timer-state-sync` 事件同步状态)
 
 ---
 
-## 📐 架构设计模式
+## 🏗️ 核心架构模式
 
-### 1. 状态管理分层架构
+### 1. 数据流架构 (前端 → Rust → SQLite)
+
 ```
-┌──────────────────────────────────────────────────────┐
-│  UI 层 (Vue Components)                               │
-│  - 纯展示组件，通过 props 接收数据                      │
-│  - 通过 emit 事件向父组件传递用户操作                   │
-│  - 禁止直接修改状态                                     │
-└────────────────┬─────────────────────────────────────┘
-                 │ Props Down ↓  Events Up ↑
-┌────────────────▼─────────────────────────────────────┐
-│  业务逻辑层 (Composables)                              │
-│  - 封装状态机和业务规则                                │
-│  - 返回响应式状态 + 控制方法                           │
-│  - 与平台无关，可跨端复用                              │
-└────────────────┬─────────────────────────────────────┘
-                 │ Tauri Invoke ↓  Tauri Events ↑
-┌────────────────▼─────────────────────────────────────┐
-│  平台层 (Tauri Rust Backend)                          │
-│  - 系统托盘、通知、文件系统等原生功能                   │
-│  - 暴露 Tauri Commands 供前端调用                      │
-│  - 通过 emit 向前端推送事件                            │
-└──────────────────────────────────────────────────────┘
+┌─ Vue 前端 ─────────────────────────────────────┐
+│  useSettingsDB.ts (reactive settings)          │
+│       ↓ watch 自动触发                          │
+│  saveSetting(key, value)                       │
+└────────────────┬───────────────────────────────┘
+                 │ invoke("db_save_setting")
+┌────────────────▼───────────────────────────────┐
+│  Rust Backend (src-tauri/src/lib.rs)           │
+│  #[tauri::command]                             │
+│  fn db_save_setting(key, value, state) {...}   │
+└────────────────┬───────────────────────────────┘
+                 │ state.db.lock().unwrap()
+┌────────────────▼───────────────────────────────┐
+│  SQLite Database (db.rs)                       │
+│  INSERT OR REPLACE INTO settings...            │
+└────────────────────────────────────────────────┘
 ```
 
-**核心原则**:
-1. **单向数据流**: Props 向下传递，Events 向上冒泡
-2. **逻辑与UI解耦**: Composables 可独立测试，不依赖 DOM
-3. **类型安全**: 所有接口定义 TypeScript interface，禁止 `any` 类型
+**关键原则**:
+- 前端 `src/utils/database.ts` 仅封装 `invoke()` 调用，不含业务逻辑
+- 所有数据验证/事务管理在 Rust 层完成
+- `currentUser` 在 `initDatabase()` 时缓存到 `AppState.current_user_id`
 
-### 2. 计时器状态机 (useTimer.ts)
-```typescript
-// 状态转换图
-idle ──start()──> work ──onWorkEnd()──> break ──onBreakEnd()──> work
- ↑                  │                      │
- └──────reset()─────┴──────skipBreak()────┘
-
-// 关键设计决策
-- 使用 setInterval(200ms) + Date.now() 时间戳计算避免累积漂移
-- workDurationMs/breakDurationMs 用 ref 包装，支持运行时动态更新
-- currentTotalDurationMs 记录当前周期总时长，防止配置变更导致进度条跳变
-- onWorkEnd/onBreakEnd 回调由上层 (App.vue) 注入，处理音频/通知/窗口行为
-```
-
-**状态更新流程**:
-```typescript
-// 1. 用户修改设置 (SettingsDialog.vue)
-settings.workDurationMinutes = 30
-
-// 2. watch 触发 (App.vue)
-watch(() => [settings.workDurationMinutes, ...], () => {
-  timer.updateDurations(newWorkMs, newBreakMs)
-})
-
-// 3. 如果当前 mode === "idle"，立即更新显示时间
-if (mode.value === "idle") {
-  remainingMs.value = newWorkMs  // 重置为新的工作时长
-}
-```
-
-### 3. 设置持久化模式 (useSettings.ts)
-```typescript
-// 架构设计
-const settings = reactive<AppSettings>({ /* 初始值 */ })
-
-// 自动持久化 (深度监听)
-watch(settings, (newSettings) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
-}, { deep: true })
-
-// 初始化时恢复
-const saved = localStorage.getItem(STORAGE_KEY)
-if (saved) Object.assign(settings, JSON.parse(saved))
-```
-
-**重要**: 
-- `settings` 对象在模块顶层创建，全局单例
-- 任何修改自动触发持久化，无需手动调用 save()
-- 新增字段时需同步更新 `AppSettings` 接口和 `defaultSettings`
-
-### 4. Tauri 命令与事件通信
-
-#### Rust → TypeScript (Tauri Commands)
-```rust
-// src-tauri/src/lib.rs
-#[tauri::command]
-fn set_tray_icon(app: tauri::AppHandle, state: &str) {
-  // 修改系统托盘图标/提示文本
-}
-
-// 注册到 invoke_handler
-.invoke_handler(tauri::generate_handler![
-  greet, set_tray_icon, update_tray_menu, app_exit
-])
-```
+### 2. 双窗口同步机制 (Main ↔ Float)
 
 ```typescript
-// src/App.vue (调用侧)
-import { invoke } from "@tauri-apps/api/core"
-await invoke("set_tray_icon", { state: "working" })
-```
-
-#### Rust → TypeScript (事件推送)
-```rust
-// 托盘菜单点击 (lib.rs)
-.on_menu_event(|app, event| match event.id.as_ref() {
-  "start" => { app.emit("tray-start", ()).unwrap(); }
-  "pause" => { app.emit("tray-pause", ()).unwrap(); }
-  // ...
-})
-```
-
-```typescript
-// App.vue (监听侧)
-onMounted(async () => {
-  await listen("tray-start", () => timer.start())
-  await listen("tray-pause", () => timer.pause())
-})
-```
-
-**权限配置**: 新增命令/插件必须在 `src-tauri/capabilities/default.json` 中声明权限
-```json
-{
-  "permissions": [
-    "core:default",
-    "core:tray:default",        // 托盘图标
-    "core:menu:default",        // 菜单
-    "core:window:allow-hide",   // 窗口隐藏
-    "notification:default"      // 系统通知
-  ]
-}
-```
-
----
-
-## 🎯 关键实现规范
-
-### 窗口关闭行为 (三阶段处理)
-```typescript
-// App.vue onMounted 中注册
-await getCurrentWindow().onCloseRequested(async (event) => {
-  event.preventDefault() // ⚠️ 必须阻止默认行为，否则窗口直接关闭
-  
-  const behavior = settings.closeBehavior
-  if (behavior === "quit") {
-    await invoke("app_exit")  // 调用 Rust 命令退出
-  } else if (behavior === "minimize") {
-    await getCurrentWindow().hide()  // 隐藏窗口到托盘
-  } else {  // behavior === "ask"
-    showCloseConfirm.value = true  // 弹出确认对话框
-  }
-})
-```
-
-**用户选择记忆**:
-- `CloseConfirmDialog.vue` 提供 "记住我的选择" 复选框
-- 勾选后更新 `settings.closeBehavior` (自动持久化到 localStorage)
-
-### 休息模式窗口强制置顶
-```typescript
-// useTimer 初始化时注入回调
-const timer = useTimer({
-  onWorkEnd: async () => {
-    const win = getCurrentWindow()
-    await win.setAlwaysOnTop(true)  // 强制窗口置顶
-    await win.setFocus()            // 获取焦点
-    // 播放提示音 + 发送通知
-  },
-  onBreakEnd: async () => {
-    await getCurrentWindow().setAlwaysOnTop(false)  // 取消置顶
-  }
-})
-```
-
-### 托盘图标动态切换
-```typescript
-// App.vue 中监听状态变化
-watch(() => [timer.mode.value, timer.isRunning.value], () => {
-  let state = "idle"
-  if (timer.mode.value === "work") {
-    state = timer.isRunning.value ? "working" : "paused"
-  } else if (timer.mode.value === "break") {
-    state = "break"  // 休息时也使用 busy 图标
-  }
-  invoke("set_tray_icon", { state })  // 通知 Rust 更新托盘图标
-}, { immediate: true })  // 立即执行确保初始状态正确
-```
-
-**Rust 侧图标路径解析** (lib.rs):
-```rust
-let icon_filename = match state {
-  "working" | "break" => "power-tray-busy.png",
-  "paused" => "power-tray-pause.png",
-  _ => "power-tray-idle.png",
-};
-
-// 多路径回退策略 (解决开发/生产环境路径差异)
-let possible_paths = vec![
-  Some(PathBuf::from(format!("src-tauri/icons/{}", icon_filename))),  // 开发模式
-  Some(PathBuf::from(format!("icons/{}", icon_filename))),             // 相对路径
-];
-if let Ok(resource_path) = app.path().resolve(...) {
-  possible_paths.push(Some(resource_path));  // Tauri 资源路径 (生产模式)
-}
-```
-
-**当前问题**: 开发模式下图标路径解析仍可能失败，需进一步调试路径逻辑。
-
-### 音频播放模式
-```typescript
-// 直接使用 Web Audio API
-const audio = new Audio("/notification-piano.mp3")  // public/ 目录下的文件
-audio.play()
-
-// 配置控制
-if (settings.enableworkSound) {
-  // 仅在用户启用时播放
-}
-```
-
-**资源组织**:
-- `public/notification-piano.mp3` - 工作结束提示音 (清脆钢琴声)
-- `public/notification-chime.mp3` - 休息结束提示音 (柔和铃声)
-
-### 系统通知权限请求
-```typescript
-import { isPermissionGranted, requestPermission, sendNotification } 
-from "@tauri-apps/plugin-notification"
-
-let permissionGranted = await isPermissionGranted()
-if (!permissionGranted) {
-  const permission = await requestPermission()
-  permissionGranted = permission === "granted"
-}
-
-if (permissionGranted) {
-  sendNotification({
-    title: "休息时间到！",
-    body: "工作辛苦了，起来活动一下吧！",
-    sound: "default"  // 使用系统默认通知音
+// 主窗口 → 悬浮窗 (App.vue)
+watch([timer.mode, timer.remainingMs, timer.isRunning], async () => {
+  await appWindow.emit("timer-state-sync", {
+    timerMode: settings.timerMode,
+    mode: timer.mode.value,
+    remainingMs: timer.remainingMs.value,
+    isRunning: timer.isRunning.value,
+    isBreakMode: timer.mode.value === "break",
+    breakElapsedMs: timer.breakElapsedMs.value
   })
+})
+
+// 悬浮窗 → 主窗口 (FloatingWindow.vue)
+async function handleClick() {
+  if (isRunning.value) {
+    await mainWindow.emit("float-pause", {})
+  } else {
+    await mainWindow.emit("float-start", {})
+  }
 }
 ```
+
+**设计要点**:
+- 主窗口是状态的 **唯一真实来源** (single source of truth)
+- 悬浮窗通过 `listen("timer-state-sync")` 被动接收状态
+- 悬浮窗操作通过 `emit("float-*")` 请求主窗口执行，不直接修改状态
+
+### 3. 计时器状态机 (防漂移设计)
+
+```typescript
+// useTimer.ts 核心机制
+let lastTick = 0;
+function tick(now: number) {
+  const delta = now - lastTick;  // 计算真实流逝时间
+  lastTick = now;
+  
+  if (mode.value === "work") {
+    remainingMs.value = Math.max(0, remainingMs.value - delta);
+    if (remainingMs.value <= 0) {
+      setMode("break");
+      options.onWorkEnd?.();  // 触发休息流程
+    }
+  }
+}
+
+setInterval(() => tick(Date.now()), 200);
+```
+
+**为什么不用 `setInterval(1000)` 直接减 1000ms?**
+- `setInterval` 存在累积误差 (受事件循环阻塞影响)
+- 使用 `Date.now()` 基于系统时钟，确保长时间运行精度
+
+---
+
+## 🎯 关键实现细节
+
+### 1. SQLite 数据库初始化流程
+
+```typescript
+// 1. 前端获取/生成设备 ID (database.ts)
+export async function getDeviceId(): Promise<string> {
+  let deviceId = localStorage.getItem("device_id");
+  if (!deviceId) {
+    deviceId = `device_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    localStorage.setItem("device_id", deviceId);
+  }
+  return deviceId;
+}
+
+// 2. 调用 Rust 初始化用户
+const deviceId = await getDeviceId();
+currentUser = await invoke<User>("db_init_user", { deviceId });
+```
+
+```rust
+// 3. Rust 侧创建/获取用户 (db.rs)
+pub fn get_or_create_user(&self, device_id: &str) -> Result<User> {
+  let conn = self.conn.lock().unwrap();
+  
+  // 尝试查找现有用户
+  match conn.query_row(...) {
+    Ok(user) => Ok(user),
+    Err(rusqlite::Error::QueryReturnedNoRows) => {
+      // 创建新用户
+      let now = now_timestamp();
+      conn.execute("INSERT INTO users ...", params![device_id, now, now])?;
+      // 返回新创建的用户
+    }
+  }
+}
+```
+
+**数据库文件位置**: 
+- Windows: `%APPDATA%\com.lonelypower.lpe-reminder\lpe_reminder.db`
+- macOS: `~/Library/Application Support/com.lonelypower.lpe-reminder/lpe_reminder.db`
+- Linux: `~/.local/share/com.lonelypower.lpe-reminder/lpe_reminder.db`
+
+### 2. 设置自动持久化机制
+
+```typescript
+// useSettingsDB.ts
+const settings = reactive<AppSettings>({ ...defaultSettings });
+
+// 监听所有设置变化
+watch(settings, async (newSettings) => {
+  const pairs = Object.entries(newSettings).map(([key, value]) => [
+    key,
+    JSON.stringify(value)
+  ]);
+  await saveSetting(pairs[0][0], pairs[0][1]);  // 示例：单个保存
+}, { deep: true });
+```
+
+**注意**: 当前实现对每个设置项单独调用 `saveSetting`，可考虑批量优化 (`db_save_settings_batch`)
+
+### 3. 托盘图标缓存优化
+
+```rust
+// lib.rs - IconCache 避免重复加载图标
+pub struct IconCache {
+  icons: HashMap<String, (Vec<u8>, u32, u32)>, // (rgba_data, width, height)
+}
+
+// 在 setup() 中预加载所有图标
+fn load_tray_icons(app: &AppHandle, cache: &mut IconCache) {
+  for (key, filename) in [("idle", "idle.png"), ("busy", "busy.png"), ...] {
+    if let Ok(img) = image::open(path) {
+      let rgba = img.to_rgba8();
+      cache.insert(key.to_string(), rgba.to_vec(), rgba.width(), rgba.height());
+    }
+  }
+}
+
+// 使用时零延迟
+fn set_tray_icon(state: &str, cache: &IconCache) {
+  if let Some(icon) = cache.get_icon(state) {
+    tray.set_icon(Some(icon))?;  // 直接使用内存中的数据
+  }
+}
+```
+
+### 4. 错误处理模式 (safeExecute)
+
+```typescript
+// utils/errorHandler.ts
+export async function safeExecute<T>(
+  fn: () => Promise<T>,
+  context: string
+): Promise<T | null> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(`[Error] ${context}:`, error);
+    return null;  // 失败时返回 null，不中断主流程
+  }
+}
+
+// App.vue 使用示例
+await safeExecute(async () => {
+  await win.setAlwaysOnTop(true);
+  await win.setFocus();
+}, "Show and focus window on work end");
+```
+
+**设计理念**: 
+- 非关键操作失败不应导致应用崩溃
+- 所有错误统一记录到控制台，便于调试
 
 ---
 
@@ -324,19 +261,49 @@ pnpm tauri build
 pnpm tauri android build
 ```
 
+### 添加新的 Tauri Command
+
+1. **定义 Rust 命令**
+```rust
+// src-tauri/src/lib.rs
+#[tauri::command]
+fn my_new_command(param: String, state: State<AppState>) -> Result<String, String> {
+  // 实现逻辑
+  Ok("success".to_string())
+}
+```
+
+2. **注册到 invoke_handler**
+```rust
+.invoke_handler(tauri::generate_handler![
+  greet,
+  set_tray_icon,
+  my_new_command,  // 添加这里
+])
+```
+
+3. **前端调用**
+```typescript
+import { invoke } from "@tauri-apps/api/core"
+const result = await invoke<string>("my_new_command", { param: "value" })
+```
+
 ### 添加新的 Tauri 插件
 **完整流程** (以添加 `dialog` 插件为例):
 
-1. **安装 Rust 依赖**
-```toml
-# src-tauri/Cargo.toml
-[dependencies]
+1. **安装依赖**
+```bash
+# Rust 侧
+# 在 src-tauri/Cargo.toml [dependencies] 添加:
 tauri-plugin-dialog = "2"
+
+# TypeScript 侧
+pnpm add @tauri-apps/plugin-dialog
 ```
 
 2. **初始化插件**
 ```rust
-// src-tauri/src/lib.rs setup()
+// src-tauri/src/lib.rs
 .plugin(tauri_plugin_dialog::init())
 ```
 
@@ -345,17 +312,12 @@ tauri-plugin-dialog = "2"
 // src-tauri/capabilities/default.json
 {
   "permissions": [
-    "dialog:default"  // 添加此行
+    "dialog:default"
   ]
 }
 ```
 
-4. **安装 TS 类型定义**
-```bash
-pnpm add @tauri-apps/plugin-dialog
-```
-
-5. **前端调用**
+4. **前端调用**
 ```typescript
 import { open } from "@tauri-apps/plugin-dialog"
 const selected = await open({ directory: true })
@@ -394,18 +356,13 @@ await getCurrentWindow().onCloseRequested(async (event) => {
 - [ ] `capabilities/default.json` 包含 `"core:tray:default"` 权限
 - [ ] Rust 侧 `image` crate 已添加到 `Cargo.toml`
 
-### 4. localStorage 数据丢失
-**原因**: Tauri 的 localStorage 绑定到特定的 AppHandle  
-**解决**: 确保在 Vue 应用挂载后才读取 localStorage
-```typescript
-// ❌ 错误: 在模块顶层直接读取
-const settings = JSON.parse(localStorage.getItem("key"))
-
-// ✅ 正确: 在 onMounted 或 setup() 中读取
-onMounted(() => {
-  const settings = JSON.parse(localStorage.getItem("key"))
-})
-```
+### 4. 数据库相关错误
+**症状**: `invoke("db_*")` 命令失败  
+**检查顺序**:
+1. 确认 `initDatabase()` 在 App.vue 的 `onMounted` 中被调用
+2. 检查 `currentUser` 是否成功初始化
+3. 查看 Rust 控制台日志 (终端输出)
+4. 验证 SQLite 文件是否存在于 AppData 目录
 
 ---
 
@@ -542,7 +499,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window"
 - [ ] 检查浏览器控制台 (Tauri 中按 F12)
 - [ ] 检查 Rust 日志输出 (终端中查看)
 - [ ] 使用 `console.log` / `println!` 逐步调试
-- [ ] 验证 localStorage 数据格式正确 (JSON 有效性)
+- [ ] 验证 SQLite 数据格式 (检查 AppData 目录中的 .db 文件)
 
 ---
 
