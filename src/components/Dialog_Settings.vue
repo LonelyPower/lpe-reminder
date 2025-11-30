@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { reactive, watch, ref } from "vue";
 import { useSettings } from "../composables/useSettingsDB";
-import UserInfoSection from "./UserInfoSection.vue";
-import BaseDialog from "./BaseDialog.vue";
+import UserInfoSection from "./Section_UserInfo.vue";
+import BaseDialog from "./Dialog_Base.vue";
 
 interface Props {
   visible: boolean;

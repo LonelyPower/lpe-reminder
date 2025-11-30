@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import CategorySelector from "./CategorySelector.vue";
+import CategorySelector from "./Section_CategorySelector.vue";
 
 interface Props {
   mode: "idle" | "work" | "break";

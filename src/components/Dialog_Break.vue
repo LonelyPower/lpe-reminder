@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import BaseDialog from "./BaseDialog.vue";
+import BaseDialog from "./Dialog_Base.vue";
 
 interface Props {
   visible: boolean;

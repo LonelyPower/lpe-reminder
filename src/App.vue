@@ -6,13 +6,17 @@ import {
   requestPermission,
   sendNotification,
 } from "@tauri-apps/plugin-notification";
-import TimerPanel from "./components/TimerPanel.vue";
-import StopwatchPanel from "./components/StopwatchPanel.vue";
-import BreakOverlay from "./components/Break_Dialog.vue";
-import SettingsDialog from "./components/Settings_Dialog.vue";
-import CloseConfirmDialog from "./components/CloseConfirm_Dialog.vue";
-import HistoryPanel from "./components/HistoryPanel.vue";
-import StopwatchCompleteDialog from "./components/StopwatchComplete_Dialog.vue";
+import TimerPanel from "./components/Page_Timer.vue";
+import HistoryPanel from "./components/Page_History.vue";
+
+import StopwatchPanel from "./components/Page_Stopwatch.vue";
+import BreakOverlay from "./components/Dialog_Break.vue";
+import SettingsDialog from "./components/Dialog_Settings.vue";
+import CloseConfirmDialog from "./components/Dialog_CloseConfirm.vue";
+import StopwatchCompleteDialog from "./components/Dialog_StopwatchComplete.vue";
+
+
+
 import { useTimer } from "./composables/useTimer";
 import { useStopwatch } from "./composables/useStopwatch";
 import { useSettings } from "./composables/useSettingsDB";

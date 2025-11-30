@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import CategorySelector from "./CategorySelector.vue";
-import BaseDialog from "./BaseDialog.vue";
+import CategorySelector from "./Section_CategorySelector.vue";
+import BaseDialog from "./Dialog_Base.vue";
 
 interface Props {
   visible: boolean;
