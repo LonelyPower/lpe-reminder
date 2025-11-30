@@ -8,11 +8,11 @@ import {
 } from "@tauri-apps/plugin-notification";
 import TimerPanel from "./components/TimerPanel.vue";
 import StopwatchPanel from "./components/StopwatchPanel.vue";
-import BreakOverlay from "./components/BreakOverlay.vue";
-import SettingsDialog from "./components/SettingsDialog.vue";
-import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
+import BreakOverlay from "./components/Break_Dialog.vue";
+import SettingsDialog from "./components/Settings_Dialog.vue";
+import CloseConfirmDialog from "./components/CloseConfirm_Dialog.vue";
 import HistoryPanel from "./components/HistoryPanel.vue";
-import StopwatchCompleteDialog from "./components/StopwatchCompleteDialog.vue";
+import StopwatchCompleteDialog from "./components/StopwatchComplete_Dialog.vue";
 import { useTimer } from "./composables/useTimer";
 import { useStopwatch } from "./composables/useStopwatch";
 import { useSettings } from "./composables/useSettingsDB";

@@ -2,6 +2,7 @@
 import { reactive, watch, ref } from "vue";
 import { useSettings } from "../composables/useSettingsDB";
 import UserInfoSection from "./UserInfoSection.vue";
+import BaseDialog from "./BaseDialog.vue";
 
 interface Props {
   visible: boolean;
@@ -54,20 +55,20 @@ function handleResetLocal() {
 </script>
 
 <template>
-  <div v-if="props.visible" class="backdrop" @click.self="emit('close')">
-    <div class="dialog" role="dialog" aria-modal="true">
-        <header class="dialog-header">
-          <h2>设置</h2>
-          <div class="tabs">
-            <button class="tab-btn" :class="{ active: activeTab === 'general' }" @click="activeTab = 'general'">
-              常规设置
-            </button>
-            <button class="tab-btn" :class="{ active: activeTab === 'account' }" @click="activeTab = 'account'">
-              账号信息
-            </button>
-          </div>
-        </header>
-        <section class="dialog-body">
+  <BaseDialog :visible="props.visible" width="450px" height="550px" :show-footer="false" @close="emit('close')">
+    <template #header>
+      <h2>设置</h2>
+      <div class="tabs">
+        <button class="tab-btn" :class="{ active: activeTab === 'general' }" @click="activeTab = 'general'">
+          常规设置
+        </button>
+        <button class="tab-btn" :class="{ active: activeTab === 'account' }" @click="activeTab = 'account'">
+          账号信息
+        </button>
+      </div>
+    </template>
+
+    <template #default>
           <!-- 账号信息区域 -->
           <div v-show="activeTab === 'account'" class="tab-content">
             <UserInfoSection />
@@ -222,57 +223,31 @@ function handleResetLocal() {
               </div>
             </div>
           </div>
-        </section>
-        <footer class="dialog-footer">
-          <button type="button" class="ghost" @click="handleResetLocal" :disabled="isSaving">
-            恢复默认
-          </button>
-          <button type="button" class="ghost" @click="emit('close')" :disabled="isSaving">
-            取消
-          </button>
-          <button type="button" class="primary" @click="handleSave" :disabled="isSaving">
-            {{ isSaving ? '保存中...' : '保存' }}
-          </button>
-        </footer>
+
+      <div class="footer-actions">
+        <button type="button" class="ghost" @click="handleResetLocal" :disabled="isSaving">
+          恢复默认
+        </button>
+        <button type="button" class="ghost" @click="emit('close')" :disabled="isSaving">
+          取消
+        </button>
+        <button type="button" class="primary" @click="handleSave" :disabled="isSaving">
+          {{ isSaving ? '保存中...' : '保存' }}
+        </button>
       </div>
-    </div>
+    </template>
+  </BaseDialog>
 </template>
 
 <style scoped>
-.backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9000;
-  backdrop-filter: blur(4px);
-}
-
-.dialog {
-  box-sizing: border-box;
-  width: 450px;
-  height: 550px;
-  max-width: calc(100% - 48px);
-  max-height: calc(100% - 48px);
-  border-radius: 16px;
-  background: var(--bg-card);
-  padding: 24px;
-  box-shadow: 0 18px 40px var(--shadow-color);
-  display: flex;
+/* 自定义头部布局 */
+:deep(.dialog-header) {
   flex-direction: column;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  overflow: hidden; /* 确保子元素不溢出圆角 */
+  align-items: stretch;
+  gap: 0;
 }
 
-.dialog-header {
-  margin-bottom: 20px;
-  flex-shrink: 0;
-}
-
-.dialog-header h2 {
+:deep(.dialog-header) h2 {
   font-size: 20px;
   margin-bottom: 16px;
   font-weight: 600;
@@ -311,14 +286,10 @@ function handleResetLocal() {
   box-shadow: 0 1px 2px var(--shadow-color);
 }
 
-.dialog-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 24px;
-  overflow-y: auto;
-  flex: 1;
-  padding-right: 4px;
+/* 覆盖默认的 body 样式 */
+:deep(.dialog-body) {
+  padding-right: 28px;
+  padding-left: 24px;
 }
 
 .tab-content {
@@ -444,13 +415,15 @@ function handleResetLocal() {
   border-color: var(--text-secondary);
 }
 
-.dialog-footer {
+.footer-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
 }
 
-.dialog-footer button {
+.footer-actions button {
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 14px;
