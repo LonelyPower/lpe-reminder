@@ -374,7 +374,7 @@ pub fn run() {
             
 
             // 创建托盘菜单项
-            let start_i = MenuItem::with_id(app, "start", "开始工作", true, None::<&str>)?;
+            let start_i = MenuItem::with_id(app, "start", "开始", true, None::<&str>)?;
             let pause_i = MenuItem::with_id(app, "pause", "暂停", true, None::<&str>)?;
             let reset_i = MenuItem::with_id(app, "reset", "重置计时", true, None::<&str>)?;
             let settings_i = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;

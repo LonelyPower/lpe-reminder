@@ -39,7 +39,7 @@ const progress = computed(() => {
 });
 
 const primaryLabel = computed(() =>
-  props.isRunning ? "暂停" : props.mode === "idle" ? "开始工作" : "继续"
+  props.isRunning ? "暂停" : props.mode === "idle" ? "开始" : "继续"
 );
 
 const statusLabel = computed(() => {
@@ -74,7 +74,7 @@ function onPrimaryClick() {
 
     <!-- 分类选择器 (仅在空闲状态显示) -->
     <div v-if="props.mode === 'idle'" class="category-section">
-      <p class="category-label">选择分类：</p>
+      <p class="category-label"></p>
       <CategorySelector v-model="selectedCategory" mode="countdown" />
     </div>
 
