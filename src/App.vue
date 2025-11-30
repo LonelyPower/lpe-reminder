@@ -7,7 +7,6 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 import TimerPanel from "./components/Page_Timer.vue";
-import HistoryPanel from "./components/Page_History.vue";
 import StatisticsPanel from "./components/Page_Statistics.vue";
 import StopwatchPanel from "./components/Page_Stopwatch.vue";
 import BreakOverlay from "./components/Dialog_Break.vue";
@@ -27,7 +26,7 @@ import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 import { playAudio, preloadAudio } from "./utils/audioPlayer";
 import { initDatabase, migrateFromLocalStorage, saveSetting } from "./utils/database";
-// import { generateTestData } from "./utils/generateTestData";
+import { generateTestData } from "./utils/generateTestData";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
@@ -35,7 +34,7 @@ const { settings, save: saveSettingsToDB } = useSettings();
 const { addRecord } = useTimerHistory();
 
 // 选项卡状态
-const activeTab = ref<"timer" | "history" | "statistics">("timer");
+const activeTab = ref<"timer" | "statistics">("timer");
 
 // 正计时相关状态
 const showStopwatchComplete = ref(false);
@@ -815,18 +814,10 @@ onBeforeUnmount(() => {
       <button 
         type="button" 
         class="tab-btn" 
-        :class="{ active: activeTab === 'history' }"
-        @click="activeTab = 'history'"
-      >
-        历史记录
-      </button>
-      <button 
-        type="button" 
-        class="tab-btn" 
         :class="{ active: activeTab === 'statistics' }"
         @click="activeTab = 'statistics'"
       >
-        统计分析
+        统计与记录
       </button>
     </div>
 
@@ -853,10 +844,6 @@ onBeforeUnmount(() => {
         @pause="stopwatch.pause()"
         @stop="stopwatch.stop()"
       />
-    </div>
-
-    <div v-show="activeTab === 'history'" class="tab-content">
-      <HistoryPanel />
     </div>
 
     <div v-show="activeTab === 'statistics'" class="tab-content">
