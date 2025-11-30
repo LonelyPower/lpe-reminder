@@ -424,7 +424,7 @@ const heatmapCells = computed(() => {
             {{ cell.day }}
           </div>
         </div>
-        <div class="chart-label">每日工作热力图</div>
+        <!-- <div class="chart-label">每日工作热力图</div> -->
       </div>
     </div>
 
@@ -652,6 +652,7 @@ const heatmapCells = computed(() => {
   gap: 12px;
   height: 100px;
   padding: 0 20px;
+  min-width: 400px;
 }
 
 .bar-item {
@@ -660,6 +661,7 @@ const heatmapCells = computed(() => {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  max-width: 40px;
 }
 
 .bar-wrapper {
@@ -667,10 +669,11 @@ const heatmapCells = computed(() => {
   height: 90px;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
 }
 
 .bar {
-  width: 100%;
+  width: 60%;
   background: #f59e0b;
   border-radius: 3px 3px 0 0;
   min-height: 2px;
@@ -690,10 +693,10 @@ const heatmapCells = computed(() => {
 /* 热力图样式 */
 .heatmap-chart {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(10, 1fr);
   gap: 6px;
   padding: 10px;
-  max-width: 450px;
+  width: 250px;
 }
 
 .heatmap-cell {
