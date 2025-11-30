@@ -71,3 +71,4 @@ eye_timer_copilot_prompts.md
 eye_timer_copilot_prompts.html
 README.html
 lpe_reminder.db
+src/utils/generateTestData.ts

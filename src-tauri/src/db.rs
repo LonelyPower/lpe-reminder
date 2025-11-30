@@ -28,6 +28,7 @@ pub struct TimerRecord {
     pub record_type: String,
     pub mode: Option<String>,
     pub name: Option<String>,
+    pub category: Option<String>,
     pub start_time: i64,
     pub end_time: i64,
     pub duration: i64,
@@ -85,6 +86,7 @@ impl Database {
                 record_type TEXT NOT NULL,
                 mode TEXT,
                 name TEXT,
+                category TEXT,
                 start_time INTEGER NOT NULL,
                 end_time INTEGER NOT NULL,
                 duration INTEGER NOT NULL,
@@ -93,6 +95,12 @@ impl Database {
             )",
             [],
         )?;
+
+        // 为已存在的表添加 category 列（如果不存在）
+        let _ = conn.execute(
+            "ALTER TABLE timer_records ADD COLUMN category TEXT",
+            [],
+        );
 
         // 创建索引
         conn.execute(
@@ -248,7 +256,7 @@ impl Database {
     pub fn get_timer_records(&self, user_id: i64, limit: i64) -> Result<Vec<TimerRecord>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, user_id, record_type, mode, name, start_time, end_time, duration, created_at 
+            "SELECT id, user_id, record_type, mode, name, category, start_time, end_time, duration, created_at 
              FROM timer_records 
              WHERE user_id = ?1 
              ORDER BY end_time DESC 
@@ -263,10 +271,11 @@ impl Database {
                     record_type: row.get(2)?,
                     mode: row.get(3)?,
                     name: row.get(4)?,
-                    start_time: row.get(5)?,
-                    end_time: row.get(6)?,
-                    duration: row.get(7)?,
-                    created_at: row.get(8)?,
+                    category: row.get(5)?,
+                    start_time: row.get(6)?,
+                    end_time: row.get(7)?,
+                    duration: row.get(8)?,
+                    created_at: row.get(9)?,
                 })
             })?
             .collect::<Result<Vec<_>>>()?;
@@ -279,20 +288,57 @@ impl Database {
 
         conn.execute(
             "INSERT INTO timer_records 
-             (id, user_id, record_type, mode, name, start_time, end_time, duration, created_at) 
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+             (id, user_id, record_type, mode, name, category, start_time, end_time, duration, created_at) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 record.id,
                 record.user_id,
                 record.record_type,
                 record.mode,
                 record.name,
+                record.category,
                 record.start_time,
                 record.end_time,
                 record.duration,
                 record.created_at,
             ],
         )?;
+
+        Ok(())
+    }
+
+    pub fn update_timer_record(&self, user_id: i64, record_id: i64, name: Option<String>, category: Option<String>) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+
+        // 构建动态 SQL
+        let mut updates = Vec::new();
+        let mut params_list: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+
+        if let Some(n) = name {
+            updates.push("name = ?");
+            params_list.push(Box::new(n));
+        }
+
+        if let Some(c) = category {
+            updates.push("category = ?");
+            params_list.push(Box::new(c));
+        }
+
+        if updates.is_empty() {
+            return Ok(()); // 无需更新
+        }
+
+        // 添加 user_id 和 record_id 到参数列表
+        params_list.push(Box::new(record_id));
+        params_list.push(Box::new(user_id));
+
+        let sql = format!(
+            "UPDATE timer_records SET {} WHERE id = ? AND user_id = ?",
+            updates.join(", ")
+        );
+
+        let params_refs: Vec<&dyn rusqlite::ToSql> = params_list.iter().map(|p| p.as_ref()).collect();
+        conn.execute(&sql, params_refs.as_slice())?;
 
         Ok(())
     }

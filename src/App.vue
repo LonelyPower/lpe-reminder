@@ -6,13 +6,16 @@ import {
   requestPermission,
   sendNotification,
 } from "@tauri-apps/plugin-notification";
-import TimerPanel from "./components/TimerPanel.vue";
-import StopwatchPanel from "./components/StopwatchPanel.vue";
-import BreakOverlay from "./components/BreakOverlay.vue";
-import SettingsDialog from "./components/SettingsDialog.vue";
-import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
-import HistoryPanel from "./components/HistoryPanel.vue";
-import StopwatchCompleteDialog from "./components/StopwatchCompleteDialog.vue";
+import TimerPanel from "./components/Page_Timer.vue";
+import StatisticsPanel from "./components/Page_Statistics.vue";
+import StopwatchPanel from "./components/Page_Stopwatch.vue";
+import BreakOverlay from "./components/Dialog_Break.vue";
+import SettingsDialog from "./components/Dialog_Settings.vue";
+import CloseConfirmDialog from "./components/Dialog_CloseConfirm.vue";
+import StopwatchCompleteDialog from "./components/Dialog_StopwatchComplete.vue";
+
+
+
 import { useTimer } from "./composables/useTimer";
 import { useStopwatch } from "./composables/useStopwatch";
 import { useSettings } from "./composables/useSettingsDB";
@@ -23,6 +26,7 @@ import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 import { playAudio, preloadAudio } from "./utils/audioPlayer";
 import { initDatabase, migrateFromLocalStorage, saveSetting } from "./utils/database";
+import { generateTestData } from "./utils/generateTestData";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
@@ -30,11 +34,14 @@ const { settings, save: saveSettingsToDB } = useSettings();
 const { addRecord } = useTimerHistory();
 
 // 选项卡状态
-const activeTab = ref<"timer" | "history">("timer");
+const activeTab = ref<"timer" | "statistics">("timer");
 
 // 正计时相关状态
 const showStopwatchComplete = ref(false);
 const stopwatchWorkDuration = ref(0); // 保存工作时长用于对话框
+
+// 分类状态
+const currentCountdownCategory = ref<string>("work"); // 倒计时当前分类
 
 // 存储事件监听器的清理函数
 const unlistenFns = ref<UnlistenFn[]>([]);
@@ -64,6 +71,7 @@ const timer = useTimer({
       startTime: endTime - workDuration,
       endTime: endTime,
       duration: workDuration,
+      category: currentCountdownCategory.value || "work",
     });
     console.log("[Countdown] Work record saved:", workDuration, "ms");
 
@@ -114,6 +122,7 @@ const timer = useTimer({
       startTime: endTime - actualBreakDuration,
       endTime: endTime,
       duration: actualBreakDuration,
+      category: currentCountdownCategory.value || "work",
     });
     console.log("[Countdown] Break record auto-saved:", actualBreakDuration, "ms");
 
@@ -230,7 +239,7 @@ function handleReset() {
 }
 
 // 处理正计时完成
-function handleStopwatchComplete(data: { name: string; takeBreak: boolean }) {
+function handleStopwatchComplete(data: { name: string; takeBreak: boolean; category: string }) {
   showStopwatchComplete.value = false;
   
   const endTime = Date.now();
@@ -244,6 +253,7 @@ function handleStopwatchComplete(data: { name: string; takeBreak: boolean }) {
     startTime: endTime - workDuration,
     endTime: endTime,
     duration: workDuration,
+    category: data.category,
   });
   console.log("[Stopwatch] Work record saved:", data.name, workDuration, "ms");
   
@@ -289,6 +299,7 @@ async function handleStopwatchBreakEnd() {
     startTime: endTime - breakDuration,
     endTime: endTime,
     duration: breakDuration,
+    category: "break",
   });
   console.log("[Stopwatch] Break record saved:", breakDuration, "ms");
   
@@ -733,6 +744,20 @@ onMounted(async () => {
 
   // 初始同步一次状态
   await syncFloatingWindowState();
+  
+  // 开发环境：暴露测试数据生成函数到全局
+  if (import.meta.env.DEV) {
+    (window as any).generateTestData = async () => {
+      console.log("开始生成测试数据...");
+      try {
+        await generateTestData();
+        console.log("测试数据生成完成！请刷新或切换标签页查看。");
+      } catch (error) {
+        console.error("生成测试数据失败:", error);
+      }
+    };
+    console.log("💡 开发提示: 在控制台输入 generateTestData() 来生成测试数据");
+  }
 });
 
 // 组件卸载时清理所有监听器
@@ -789,10 +814,10 @@ onBeforeUnmount(() => {
       <button 
         type="button" 
         class="tab-btn" 
-        :class="{ active: activeTab === 'history' }"
-        @click="activeTab = 'history'"
+        :class="{ active: activeTab === 'statistics' }"
+        @click="activeTab = 'statistics'"
       >
-        历史记录
+        统计与记录
       </button>
     </div>
 
@@ -804,7 +829,8 @@ onBeforeUnmount(() => {
         :cycle-count="timer.cycleCount.value"
         :total-duration-ms="timer.totalDurationMs.value"
         :is-running="timer.mode.value === 'break' ? false : timer.isRunning.value"
-        @start="timer.start()"
+        :category="currentCountdownCategory"
+        @start="(category: string) => { currentCountdownCategory = category; timer.start(); }"
         @pause="timer.pause()"
         @reset="handleReset"
         @skip-break="timer.skipBreak()"
@@ -820,8 +846,8 @@ onBeforeUnmount(() => {
       />
     </div>
 
-    <div v-show="activeTab === 'history'" class="tab-content">
-      <HistoryPanel />
+    <div v-show="activeTab === 'statistics'" class="tab-content">
+      <StatisticsPanel />
     </div>
 
     <!-- 统一休息遮罩 -->

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import CategorySelector from "./Section_CategorySelector.vue";
 
 interface Props {
   mode: "idle" | "work" | "break";
@@ -7,16 +8,19 @@ interface Props {
   cycleCount: number;
   totalDurationMs?: number;
   isRunning?: boolean;
+  category?: string;
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: "start"): void;
+  (e: "start", category: string): void;
   (e: "pause"): void;
   (e: "reset"): void;
   (e: "skip-break"): void;
 }>();
+
+const selectedCategory = ref(props.category || "work");
 
 function formatTime(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -35,7 +39,7 @@ const progress = computed(() => {
 });
 
 const primaryLabel = computed(() =>
-  props.isRunning ? "暂停" : props.mode === "idle" ? "开始工作" : "继续"
+  props.isRunning ? "暂停" : props.mode === "idle" ? "开始" : "继续"
 );
 
 const statusLabel = computed(() => {
@@ -48,7 +52,7 @@ function onPrimaryClick() {
   if (props.isRunning) {
     emit("pause");
   } else {
-    emit("start");
+    emit("start", selectedCategory.value);
   }
 }
 </script>
@@ -67,6 +71,12 @@ function onPrimaryClick() {
     </div>
 
     <p class="cycle">已完成轮次：{{ props.cycleCount }}</p>
+
+    <!-- 分类选择器 (仅在空闲状态显示) -->
+    <div v-if="props.mode === 'idle'" class="category-section">
+      <p class="category-label"></p>
+      <CategorySelector v-model="selectedCategory" mode="countdown" />
+    </div>
 
     <div class="actions">
       <button type="button" class="primary" @click="onPrimaryClick">
@@ -189,5 +199,20 @@ function onPrimaryClick() {
 .ghost:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.category-section {
+  margin-bottom: 24px;
+  text-align: center;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.category-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
 }
 </style>

@@ -22,6 +22,7 @@ export interface TimerRecord {
   record_type: string;
   mode: string | null;
   name: string | null;
+  category: string | null;
   start_time: number;
   end_time: number;
   duration: number;
@@ -127,6 +128,13 @@ export async function addTimerRecord(record: Omit<TimerRecord, "user_id">): Prom
 }
 
 /**
+ * 更新计时记录
+ */
+export async function updateTimerRecord(recordId: number, updates: Partial<Pick<TimerRecord, "name" | "category">>): Promise<void> {
+  await invoke("db_update_timer_record", { recordId, updates });
+}
+
+/**
  * 删除计时记录
  */
 export async function deleteTimerRecord(recordId: string): Promise<void> {
@@ -184,6 +192,7 @@ export async function migrateFromLocalStorage(): Promise<void> {
           record_type: record.type,
           mode: record.mode || null,
           name: record.name || null,
+          category: record.category || null,
           start_time: record.startTime,
           end_time: record.endTime,
           duration: record.duration,

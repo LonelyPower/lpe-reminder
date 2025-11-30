@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import CategorySelector from "./Section_CategorySelector.vue";
+import BaseDialog from "./Dialog_Base.vue";
 
 interface Props {
   visible: boolean;
@@ -9,12 +11,13 @@ interface Props {
 defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: "confirm", data: { name: string; takeBreak: boolean }): void;
+  (e: "confirm", data: { name: string; takeBreak: boolean; category: string }): void;
   (e: "cancel"): void;
 }>();
 
 const workName = ref("");
 const takeBreak = ref(true);
+const selectedCategory = ref("work");
 
 // 格式化时长
 function formatDuration(ms: number): string {
@@ -36,9 +39,11 @@ function handleConfirm() {
   emit("confirm", {
     name: workName.value.trim() || "未命名工作",
     takeBreak: takeBreak.value,
+    category: selectedCategory.value,
   });
   // 重置状态
   workName.value = "";
+  selectedCategory.value = "work";
 //   takeBreak.value = false;
 }
 
@@ -46,31 +51,14 @@ function handleCancel() {
   emit("cancel");
   // 重置状态
   workName.value = "";
+  selectedCategory.value = "work";
 //   takeBreak.value = false;
 }
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="dialog-fade">
-      <div v-if="visible" class="dialog-overlay" @click.self="handleCancel">
-        <div class="dialog-content">
-          <div class="dialog-header">
-            <h2>工作完成</h2>
-            <button 
-              type="button" 
-              class="close-btn" 
-              @click="handleCancel"
-              aria-label="关闭"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-
-          <div class="dialog-body">
+  <BaseDialog :visible="visible" title="工作完成" @close="handleCancel">
+    <template #default>
             <div class="duration-display">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -96,6 +84,11 @@ function handleCancel() {
             </div>
 
             <div class="form-group">
+              <label class="form-label">选择分类</label>
+              <CategorySelector v-model="selectedCategory" mode="stopwatch" />
+            </div>
+
+            <div class="form-group">
               <label class="checkbox-label">
                 <input
                   v-model="takeBreak"
@@ -106,89 +99,20 @@ function handleCancel() {
               </label>
               <p class="help-text">勾选后将开始休息倒计时</p>
             </div>
-          </div>
+    </template>
 
-          <div class="dialog-footer">
-            <button type="button" class="btn btn-secondary" @click="handleCancel">
-              取消
-            </button>
-            <button type="button" class="btn btn-primary" @click="handleConfirm">
-              确定
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+    <template #footer>
+      <button type="button" class="btn btn-secondary" @click="handleCancel">
+        取消
+      </button>
+      <button type="button" class="btn btn-primary" @click="handleConfirm">
+        确定
+      </button>
+    </template>
+  </BaseDialog>
 </template>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.dialog-content {
-  background: var(--bg-card);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px var(--shadow-color);
-  width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
-  color: var(--text-primary);
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.dialog-header h2 {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.close-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.close-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.dialog-body {
-  padding: 24px;
-}
-
 .duration-display {
   display: flex;
   align-items: center;
@@ -275,13 +199,6 @@ function handleCancel() {
   color: var(--text-muted);
 }
 
-.dialog-footer {
-  display: flex;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--border-color);
-}
-
 .btn {
   flex: 1;
   padding: 10px 16px;
@@ -310,26 +227,5 @@ function handleCancel() {
 .btn-primary:hover {
   background: var(--primary-hover);
   box-shadow: 0 4px 12px var(--shadow-color);
-}
-
-/* 动画 */
-.dialog-fade-enter-active,
-.dialog-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.dialog-fade-enter-active .dialog-content,
-.dialog-fade-leave-active .dialog-content {
-  transition: transform 0.3s ease;
-}
-
-.dialog-fade-enter-from,
-.dialog-fade-leave-to {
-  opacity: 0;
-}
-
-.dialog-fade-enter-from .dialog-content,
-.dialog-fade-leave-to .dialog-content {
-  transform: scale(0.9);
 }
 </style>

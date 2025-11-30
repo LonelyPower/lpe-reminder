@@ -15,6 +15,7 @@ export interface TimerRecord {
   duration: number;
   mode?: "work" | "break";
   name?: string;
+  category?: string;
 }
 
 const records = ref<TimerRecord[]>([]);
@@ -33,6 +34,7 @@ async function loadRecords(): Promise<void> {
       type: row.record_type as "countdown" | "stopwatch",
       mode: row.mode as "work" | "break" | undefined,
       name: row.name || undefined,
+      category: row.category || undefined,
       startTime: row.start_time,
       endTime: row.end_time,
       duration: row.duration,
@@ -78,6 +80,7 @@ export function useTimerHistory() {
       record_type: newRecord.type,
       mode: newRecord.mode || null,
       name: newRecord.name || null,
+      category: newRecord.category || null,
       start_time: newRecord.startTime,
       end_time: newRecord.endTime,
       duration: newRecord.duration,
@@ -155,5 +158,6 @@ export function useTimerHistory() {
     getTodayRecords,
     getWeekRecords,
     getTotalDuration,
+    loadRecords,
   };
 }
