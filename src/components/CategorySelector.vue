@@ -43,7 +43,7 @@ function handleSelect(value: string) {
 </script>
 
 <template>
-  <div class="category-selector">
+  <div class="category-selector" :class="{ 'stopwatch-mode': mode === 'stopwatch' }">
     <div class="category-grid">
       <button
         v-for="cat in categories"
@@ -66,9 +66,10 @@ function handleSelect(value: string) {
 }
 
 .category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  display: flex;
+  justify-content: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .category-item {
@@ -85,6 +86,7 @@ function handleSelect(value: string) {
   cursor: pointer;
   transition: all 0.2s;
   min-height: 90px;
+  min-width: 100px;
 }
 
 .category-item:hover {
@@ -109,5 +111,26 @@ function handleSelect(value: string) {
   font-size: 14px;
   font-weight: 500;
   text-align: center;
+}
+
+/* 正计时模式缩小样式 */
+.category-selector.stopwatch-mode .category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.category-selector.stopwatch-mode .category-item {
+  padding: 12px 8px;
+  min-height: 70px;
+  min-width: 80px;
+}
+
+.category-selector.stopwatch-mode .category-icon {
+  font-size: 20px;
+}
+
+.category-selector.stopwatch-mode .category-label {
+  font-size: 12px;
 }
 </style>

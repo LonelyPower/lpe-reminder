@@ -203,7 +203,10 @@ function onPrimaryClick() {
 
 .category-section {
   margin-bottom: 24px;
-  text-align: left;
+  text-align: center;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .category-label {
