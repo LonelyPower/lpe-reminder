@@ -94,11 +94,11 @@ function formatDateTime(timestamp: number): string {
 
 // 获取记录类型文本
 function getRecordTypeText(record: TimerRecord): string {
-  if (record.type === "countdown") {
-    return record.mode === "work" ? "倒计时-工作" : "倒计时-休息";
-  }
-  // 正计时
-  return record.mode === "work" ? "正计时-工作" : "正计时-休息";
+  // if (record.type === "countdown") {
+  //   return record.mode === "work" ? "工作" : "休息";
+  // }
+  // // 正计时
+  return record.mode === "work" ? "工作" : "休息";
 }
 
 // 获取记录类型颜色
@@ -193,7 +193,7 @@ function handleClearAll() {
             </div>
             <div class="record-meta">
               <span class="record-time">{{ formatDateTime(record.endTime) }}</span>
-              <span class="record-category">
+              <span v-if="record.mode === 'work'" class="record-category">
                 <template v-if="editingRecordId === parseInt(record.id.split('-')[0], 10)">
                   <input
                     v-model="editingCategory"
