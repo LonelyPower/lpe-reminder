@@ -114,6 +114,7 @@ function formatDeviceId(id: string): string {
 
 .phone-input {
   width: 100%;
+  max-width: 280px;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -121,6 +122,7 @@ function formatDeviceId(id: string): string {
   transition: all 0.2s;
   background: var(--bg-card);
   color: var(--text-primary);
+  box-sizing: border-box;
 }
 
 .phone-input:focus {
