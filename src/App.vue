@@ -8,7 +8,7 @@ import {
 } from "@tauri-apps/plugin-notification";
 import TimerPanel from "./components/Page_Timer.vue";
 import HistoryPanel from "./components/Page_History.vue";
-
+import StatisticsPanel from "./components/Page_Statistics.vue";
 import StopwatchPanel from "./components/Page_Stopwatch.vue";
 import BreakOverlay from "./components/Dialog_Break.vue";
 import SettingsDialog from "./components/Dialog_Settings.vue";
@@ -34,7 +34,7 @@ const { settings, save: saveSettingsToDB } = useSettings();
 const { addRecord } = useTimerHistory();
 
 // 选项卡状态
-const activeTab = ref<"timer" | "history">("timer");
+const activeTab = ref<"timer" | "history" | "statistics">("timer");
 
 // 正计时相关状态
 const showStopwatchComplete = ref(false);
@@ -805,6 +805,14 @@ onBeforeUnmount(() => {
       >
         历史记录
       </button>
+      <button 
+        type="button" 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'statistics' }"
+        @click="activeTab = 'statistics'"
+      >
+        统计分析
+      </button>
     </div>
 
     <div v-show="activeTab === 'timer'" class="tab-content">
@@ -834,6 +842,10 @@ onBeforeUnmount(() => {
 
     <div v-show="activeTab === 'history'" class="tab-content">
       <HistoryPanel />
+    </div>
+
+    <div v-show="activeTab === 'statistics'" class="tab-content">
+      <StatisticsPanel />
     </div>
 
     <!-- 统一休息遮罩 -->
