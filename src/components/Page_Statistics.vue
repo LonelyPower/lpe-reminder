@@ -593,14 +593,14 @@ const heatmapCells = computed(() => {
 .total-card {
   background: var(--bg-card);
   border-radius: 12px;
-  padding: 24px;
+  padding: 16px 24px;
   box-shadow: 0 2px 8px var(--shadow-color);
   border-left: 4px solid #f59e0b;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 32px;
+  gap: 24px;
 }
 
 .total-info {
