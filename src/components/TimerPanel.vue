@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import CategorySelector from "./CategorySelector.vue";
 
 interface Props {
   mode: "idle" | "work" | "break";
@@ -7,16 +8,19 @@ interface Props {
   cycleCount: number;
   totalDurationMs?: number;
   isRunning?: boolean;
+  category?: string;
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: "start"): void;
+  (e: "start", category: string): void;
   (e: "pause"): void;
   (e: "reset"): void;
   (e: "skip-break"): void;
 }>();
+
+const selectedCategory = ref(props.category || "work");
 
 function formatTime(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -48,7 +52,7 @@ function onPrimaryClick() {
   if (props.isRunning) {
     emit("pause");
   } else {
-    emit("start");
+    emit("start", selectedCategory.value);
   }
 }
 </script>
@@ -67,6 +71,12 @@ function onPrimaryClick() {
     </div>
 
     <p class="cycle">已完成轮次：{{ props.cycleCount }}</p>
+
+    <!-- 分类选择器 (仅在空闲状态显示) -->
+    <div v-if="props.mode === 'idle'" class="category-section">
+      <p class="category-label">选择分类：</p>
+      <CategorySelector v-model="selectedCategory" mode="countdown" />
+    </div>
 
     <div class="actions">
       <button type="button" class="primary" @click="onPrimaryClick">
@@ -189,5 +199,17 @@ function onPrimaryClick() {
 .ghost:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.category-section {
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.category-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
 }
 </style>

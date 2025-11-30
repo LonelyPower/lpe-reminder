@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import CategorySelector from "./CategorySelector.vue";
 
 interface Props {
   visible: boolean;
@@ -9,12 +10,13 @@ interface Props {
 defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: "confirm", data: { name: string; takeBreak: boolean }): void;
+  (e: "confirm", data: { name: string; takeBreak: boolean; category: string }): void;
   (e: "cancel"): void;
 }>();
 
 const workName = ref("");
 const takeBreak = ref(true);
+const selectedCategory = ref("work");
 
 // 格式化时长
 function formatDuration(ms: number): string {
@@ -36,9 +38,11 @@ function handleConfirm() {
   emit("confirm", {
     name: workName.value.trim() || "未命名工作",
     takeBreak: takeBreak.value,
+    category: selectedCategory.value,
   });
   // 重置状态
   workName.value = "";
+  selectedCategory.value = "work";
 //   takeBreak.value = false;
 }
 
@@ -46,6 +50,7 @@ function handleCancel() {
   emit("cancel");
   // 重置状态
   workName.value = "";
+  selectedCategory.value = "work";
 //   takeBreak.value = false;
 }
 </script>
@@ -93,6 +98,11 @@ function handleCancel() {
                 maxlength="50"
                 @keyup.enter="handleConfirm"
               />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">选择分类</label>
+              <CategorySelector v-model="selectedCategory" mode="stopwatch" />
             </div>
 
             <div class="form-group">

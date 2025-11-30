@@ -36,6 +36,9 @@ const activeTab = ref<"timer" | "history">("timer");
 const showStopwatchComplete = ref(false);
 const stopwatchWorkDuration = ref(0); // 保存工作时长用于对话框
 
+// 分类状态
+const currentCountdownCategory = ref<string>("work"); // 倒计时当前分类
+
 // 存储事件监听器的清理函数
 const unlistenFns = ref<UnlistenFn[]>([]);
 // 存储 watch 的停止函数
@@ -64,6 +67,7 @@ const timer = useTimer({
       startTime: endTime - workDuration,
       endTime: endTime,
       duration: workDuration,
+      category: currentCountdownCategory.value || "work",
     });
     console.log("[Countdown] Work record saved:", workDuration, "ms");
 
@@ -114,6 +118,7 @@ const timer = useTimer({
       startTime: endTime - actualBreakDuration,
       endTime: endTime,
       duration: actualBreakDuration,
+      category: currentCountdownCategory.value || "work",
     });
     console.log("[Countdown] Break record auto-saved:", actualBreakDuration, "ms");
 
@@ -230,7 +235,7 @@ function handleReset() {
 }
 
 // 处理正计时完成
-function handleStopwatchComplete(data: { name: string; takeBreak: boolean }) {
+function handleStopwatchComplete(data: { name: string; takeBreak: boolean; category: string }) {
   showStopwatchComplete.value = false;
   
   const endTime = Date.now();
@@ -244,6 +249,7 @@ function handleStopwatchComplete(data: { name: string; takeBreak: boolean }) {
     startTime: endTime - workDuration,
     endTime: endTime,
     duration: workDuration,
+    category: data.category,
   });
   console.log("[Stopwatch] Work record saved:", data.name, workDuration, "ms");
   
@@ -289,6 +295,7 @@ async function handleStopwatchBreakEnd() {
     startTime: endTime - breakDuration,
     endTime: endTime,
     duration: breakDuration,
+    category: "break",
   });
   console.log("[Stopwatch] Break record saved:", breakDuration, "ms");
   
@@ -804,7 +811,8 @@ onBeforeUnmount(() => {
         :cycle-count="timer.cycleCount.value"
         :total-duration-ms="timer.totalDurationMs.value"
         :is-running="timer.mode.value === 'break' ? false : timer.isRunning.value"
-        @start="timer.start()"
+        :category="currentCountdownCategory"
+        @start="(category: string) => { currentCountdownCategory = category; timer.start(); }"
         @pause="timer.pause()"
         @reset="handleReset"
         @skip-break="timer.skipBreak()"

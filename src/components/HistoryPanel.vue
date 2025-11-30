@@ -1,9 +1,59 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useTimerHistory } from "../composables/useTimerHistoryDB";
 import type { TimerRecord } from "../composables/useTimerHistoryDB";
+import { updateTimerRecord } from "../utils/database";
 
-const { records, deleteRecord, clearRecords, getTodayRecords, getWeekRecords, getTotalDuration } = useTimerHistory();
+const { records, deleteRecord, clearRecords, getTodayRecords, getWeekRecords, getTotalDuration, loadRecords } = useTimerHistory();
+
+// 编辑分类状态
+const editingRecordId = ref<number | null>(null);
+const editingCategory = ref<string>("");
+
+// 获取分类标签映射
+const categoryLabels: Record<string, string> = {
+  work: "工作",
+  entertainment: "娱乐",
+  study: "学习",
+  exercise: "运动",
+  reading: "阅读",
+  meeting: "会议",
+  break: "休息",
+};
+
+// 获取分类显示名称
+function getCategoryLabel(category: string | null): string {
+  if (!category) return "未分类";
+  return categoryLabels[category] || category;
+}
+
+// 开始编辑分类
+function startEditCategory(record: TimerRecord) {
+  // 使用 Number(record.id) 转换 ID（如果 ID 是数字字符串）
+  // 或者从 record.id 中提取数字部分
+  const numericId = parseInt(record.id.split("-")[0], 10);
+  editingRecordId.value = numericId;
+  editingCategory.value = record.category || "";
+}
+
+// 保存分类
+async function saveCategory(recordId: number) {
+  try {
+    await updateTimerRecord(recordId, { category: editingCategory.value || null });
+    await loadRecords(); // 重新加载记录
+    editingRecordId.value = null;
+    editingCategory.value = "";
+  } catch (error) {
+    console.error("Failed to update category:", error);
+    alert("保存失败，请重试");
+  }
+}
+
+// 取消编辑
+function cancelEditCategory() {
+  editingRecordId.value = null;
+  editingCategory.value = "";
+}
 
 // 格式化时长
 function formatDuration(ms: number): string {
@@ -141,7 +191,28 @@ function handleClearAll() {
               </div>
               <span class="record-duration">{{ formatDuration(record.duration) }}</span>
             </div>
-            <div class="record-time">{{ formatDateTime(record.endTime) }}</div>
+            <div class="record-meta">
+              <span class="record-time">{{ formatDateTime(record.endTime) }}</span>
+              <span class="record-category">
+                <template v-if="editingRecordId === parseInt(record.id.split('-')[0], 10)">
+                  <input
+                    v-model="editingCategory"
+                    type="text"
+                    class="category-input"
+                    placeholder="输入分类"
+                    @keyup.enter="saveCategory(editingRecordId!)"
+                    @keyup.esc="cancelEditCategory"
+                  />
+                  <button type="button" class="save-btn" @click="saveCategory(editingRecordId!)">✓</button>
+                  <button type="button" class="cancel-btn" @click="cancelEditCategory">✕</button>
+                </template>
+                <template v-else>
+                  <span class="category-text" @click="startEditCategory(record)">
+                    🏷️ {{ getCategoryLabel(record.category || null) }}
+                  </span>
+                </template>
+              </span>
+            </div>
           </div>
           <button 
             type="button" 
@@ -362,9 +433,79 @@ function handleClearAll() {
   flex-shrink: 0;
 }
 
+.record-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .record-time {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.record-category {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.category-text {
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.category-text:hover {
+  background: var(--bg-hover);
+  color: var(--primary-color);
+}
+
+.category-input {
+  width: 100px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+.category-input:focus {
+  border-color: var(--primary-color);
+}
+
+.save-btn,
+.cancel-btn {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.save-btn {
+  background: var(--primary-color);
+  color: #ffffff;
+}
+
+.save-btn:hover {
+  background: var(--primary-hover);
+}
+
+.cancel-btn {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.cancel-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .delete-btn {

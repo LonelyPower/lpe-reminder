@@ -120,6 +120,27 @@ fn db_add_timer_record(record: TimerRecord, state: State<AppState>) -> Result<()
 }
 
 #[tauri::command]
+fn db_update_timer_record(
+    record_id: i64,
+    updates: std::collections::HashMap<String, serde_json::Value>,
+    state: State<AppState>
+) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let name = updates.get("name")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    
+    let category = updates.get("category")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    
+    let db = state.db.lock().unwrap();
+    db.update_timer_record(user_id, record_id, name, category).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn db_delete_timer_record(record_id: String, state: State<AppState>) -> Result<(), String> {
     let user_id = state.current_user_id.lock().unwrap()
         .ok_or("User not initialized")?;
@@ -425,6 +446,7 @@ pub fn run() {
             db_save_settings_batch,
             db_get_timer_records,
             db_add_timer_record,
+            db_update_timer_record,
             db_delete_timer_record,
             db_clear_timer_records
         ])

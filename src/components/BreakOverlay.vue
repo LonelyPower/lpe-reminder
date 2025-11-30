@@ -63,12 +63,12 @@ function getProgress(elapsed: number, target: number): number {
         </div>
 
         <div v-if="isOvertime" class="overtime-notice">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          <!-- <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
+          </svg> -->
           <span>已超过休息时长</span>
         </div>
 
