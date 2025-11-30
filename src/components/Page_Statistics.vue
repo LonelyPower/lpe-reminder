@@ -246,6 +246,108 @@ function handleClearAll() {
     clearRecords();
   }
 }
+
+// 今日折线图数据（按小时统计）
+const todayLineChartData = computed(() => {
+  if (timeRange.value !== "today") return [];
+  
+  const hourlyData = new Array(24).fill(0);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  
+  filteredRecords.value.forEach(record => {
+    const hour = new Date(record.endTime).getHours();
+    hourlyData[hour] += record.duration / 1000 / 60; // 转换为分钟
+  });
+  
+  return hourlyData;
+});
+
+// 本周柱状图数据（按天统计）
+const weekBarChartData = computed(() => {
+  if (timeRange.value !== "week") return [];
+  
+  const dailyData = new Array(7).fill(0);
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  
+  filteredRecords.value.forEach(record => {
+    const recordDate = new Date(record.endTime);
+    const dayIndex = recordDate.getDay();
+    dailyData[dayIndex] += record.duration / 1000 / 60; // 转换为分钟
+  });
+  
+  return dailyData;
+});
+
+// 本月热力图数据（按日期统计）
+const monthHeatmapData = computed(() => {
+  if (timeRange.value !== "month") return [];
+  
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  
+  const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+  const dailyData = new Array(daysInMonth).fill(0);
+  
+  filteredRecords.value.forEach(record => {
+    const recordDate = new Date(record.endTime);
+    const dayIndex = recordDate.getDate() - 1;
+    dailyData[dayIndex] += record.duration / 1000 / 60; // 转换为分钟
+  });
+  
+  return dailyData;
+});
+
+// 生成折线图路径
+function generateLineChartPath(): string {
+  const data = todayLineChartData.value;
+  if (data.length === 0 || data.every(v => v === 0)) return "";
+  
+  const width = 400;
+  const height = 100;
+  const maxValue = Math.max(...data, 1);
+  const pointSpacing = width / (data.length - 1);
+  
+  const points = data.map((value, index) => {
+    const x = index * pointSpacing;
+    const y = height - (value / maxValue) * height;
+    return `${x},${y}`;
+  });
+  
+  return `M ${points.join(" L ")}`;
+}
+
+// 生成柱状图数据
+const barChartBars = computed(() => {
+  const data = weekBarChartData.value;
+  if (data.length === 0) return [];
+  
+  const maxValue = Math.max(...data, 1);
+  const weekDays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  
+  return data.map((value, index) => ({
+    label: weekDays[index],
+    value,
+    height: (value / maxValue) * 100,
+  }));
+});
+
+// 生成热力图数据
+const heatmapCells = computed(() => {
+  const data = monthHeatmapData.value;
+  if (data.length === 0) return [];
+  
+  const maxValue = Math.max(...data, 1);
+  
+  return data.map((value, index) => ({
+    day: index + 1,
+    value,
+    intensity: value / maxValue,
+  }));
+});
 </script>
 
 <template>
@@ -271,9 +373,59 @@ function handleClearAll() {
 
     <!-- 总时长卡片 -->
     <div class="total-card">
-      <div class="total-label">总工作时长</div>
-      <div class="total-value">{{ formatDuration(totalDuration) }}</div>
-      <div class="total-count">{{ filteredRecords.length }} 次工作记录</div>
+      <div class="total-info">
+        <div class="total-label">总工作时长</div>
+        <div class="total-value">{{ formatDuration(totalDuration) }}</div>
+        <div class="total-count">{{ filteredRecords.length }} 次工作记录</div>
+      </div>
+      
+      <!-- 今日折线图 -->
+      <div v-if="timeRange === 'today' && todayLineChartData.some(v => v > 0)" class="chart-container">
+        <svg width="400" height="100" class="line-chart">
+          <path
+            :d="generateLineChartPath()"
+            fill="none"
+            stroke="#f59e0b"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <div class="chart-label">24小时工作分布</div>
+      </div>
+      
+      <!-- 本周柱状图 -->
+      <div v-if="timeRange === 'week' && weekBarChartData.some(v => v > 0)" class="chart-container">
+        <div class="bar-chart">
+          <div
+            v-for="bar in barChartBars"
+            :key="bar.label"
+            class="bar-item"
+          >
+            <div class="bar-wrapper">
+              <div class="bar" :style="{ height: bar.height + '%' }"></div>
+            </div>
+            <div class="bar-label">{{ bar.label.slice(1) }}</div>
+          </div>
+        </div>
+        <div class="chart-label">每日工作时长</div>
+      </div>
+      
+      <!-- 本月热力图 -->
+      <div v-if="timeRange === 'month' && monthHeatmapData.some(v => v > 0)" class="chart-container">
+        <div class="heatmap-chart">
+          <div
+            v-for="cell in heatmapCells"
+            :key="cell.day"
+            class="heatmap-cell"
+            :style="{ opacity: 0.2 + cell.intensity * 0.8 }"
+            :title="`${cell.day}日: ${Math.round(cell.value)}分钟`"
+          >
+            {{ cell.day }}
+          </div>
+        </div>
+        <div class="chart-label">每日工作热力图</div>
+      </div>
     </div>
 
     <div v-if="categoryStatsWithPercentage.length === 0" class="empty-state">
@@ -443,8 +595,16 @@ function handleClearAll() {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px var(--shadow-color);
-  text-align: center;
   border-left: 4px solid #f59e0b;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.total-info {
+  text-align: center;
   flex-shrink: 0;
 }
 
@@ -464,6 +624,95 @@ function handleClearAll() {
 .total-count {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.chart-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* 折线图样式 */
+.line-chart {
+  display: block;
+}
+
+/* 柱状图样式 */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 100px;
+  padding: 0 20px;
+}
+
+.bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.bar-wrapper {
+  width: 100%;
+  height: 90px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar {
+  width: 100%;
+  background: #f59e0b;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+  transition: all 0.3s;
+}
+
+.bar-item:hover .bar {
+  background: #fb923c;
+}
+
+.bar-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* 热力图样式 */
+.heatmap-chart {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  padding: 10px;
+  max-width: 450px;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  background: #f59e0b;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
 }
 
 .empty-state {
