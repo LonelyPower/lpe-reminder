@@ -245,13 +245,14 @@ function handleResetLocal() {
   flex-direction: column;
   align-items: stretch;
   gap: 0;
+  position: relative;
 }
 
-:deep(.dialog-header) h2 {
-  font-size: 20px;
-  margin-bottom: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+/* 关闭按钮固定在右上角 */
+:deep(.close-btn) {
+  position: absolute;
+  top: 20px;
+  right: 24px;
 }
 
 .tabs {
