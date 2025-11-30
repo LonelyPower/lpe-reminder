@@ -494,8 +494,8 @@ function handleClearAll() {
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 2px 8px var(--shadow-color);
-  flex: 1;
-  overflow: hidden;
+  flex-shrink: 0;
+  min-height: 350px;
 }
 
 .pie-chart-container {
