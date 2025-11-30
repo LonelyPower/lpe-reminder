@@ -27,6 +27,7 @@ import { safeInvoke, safeExecute } from "./utils/errorHandler";
 import { minutesSecondsToMs } from "./utils/timeUtils";
 import { playAudio, preloadAudio } from "./utils/audioPlayer";
 import { initDatabase, migrateFromLocalStorage, saveSetting } from "./utils/database";
+// import { generateTestData } from "./utils/generateTestData";
 
 const showSettings = ref(false);
 const showCloseConfirm = ref(false);
@@ -744,6 +745,20 @@ onMounted(async () => {
 
   // 初始同步一次状态
   await syncFloatingWindowState();
+  
+  // 开发环境：暴露测试数据生成函数到全局
+  if (import.meta.env.DEV) {
+    (window as any).generateTestData = async () => {
+      console.log("开始生成测试数据...");
+      try {
+        await generateTestData();
+        console.log("测试数据生成完成！请刷新或切换标签页查看。");
+      } catch (error) {
+        console.error("生成测试数据失败:", error);
+      }
+    };
+    console.log("💡 开发提示: 在控制台输入 generateTestData() 来生成测试数据");
+  }
 });
 
 // 组件卸载时清理所有监听器
