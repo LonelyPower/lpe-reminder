@@ -32,12 +32,7 @@ function handleCancel() {
 </script>
 
 <template>
-  <BaseDialog 
-    :visible="props.visible" 
-    title="关闭应用"
-    width="400px"
-    @close="handleCancel"
-  >
+  <BaseDialog :visible="props.visible" title="关闭应用" width="400px" @close="handleCancel">
     <template #default>
       <p class="message">是否最小化到托盘而不是退出应用？</p>
       <label class="checkbox-label">
