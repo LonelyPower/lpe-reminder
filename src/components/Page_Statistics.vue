@@ -415,8 +415,8 @@ const heatmapCells = computed(() => {
         <!-- 今日折线图 -->
         <svg
           v-if="timeRange === 'today' && todayLineChartData.some(v => v > 0)"
-          width="400"
-          height="100"
+          viewBox="0 0 400 100"
+          preserveAspectRatio="none"
           class="line-chart"
         >
           <path
@@ -697,6 +697,7 @@ const heatmapCells = computed(() => {
 .line-chart {
   width: 100%;
   height: 100px;
+  max-width: 400px;
 }
 
 /* 本周柱状图 */
@@ -714,19 +715,29 @@ const heatmapCells = computed(() => {
   align-items: center;
 }
 .bar-wrapper {
+  width: 100%;
   height: 90px;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
 }
 .bar {
-  width: 60%;
+  width: 100%;
+  max-width: 32px;
   background: #f59e0b;
-  min-height: 2px;
+  min-height: 4px;
   border-radius: 3px 3px 0 0;
+  transition: all 0.2s;
+}
+.bar-item:hover .bar {
+  background: #d97706;
+  transform: scaleY(1.05);
+  transform-origin: bottom;
 }
 .bar-label {
   font-size: 10px;
   color: var(--text-muted);
+  margin-top: 4px;
 }
 
 /* 热力图 */
