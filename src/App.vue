@@ -177,6 +177,24 @@ watch(
   }
 );
 
+// 监听选项卡切换，自动调整窗口大小
+watch(activeTab, async (newTab) => {
+  const appWindow = getCurrentWindow();
+  try {
+    if (newTab === "statistics") {
+      // 切换到统计页面，使用宽体布局
+      await appWindow.setSize(new LogicalSize(800, 600));
+    } else {
+      // 切换回计时器，恢复正常尺寸
+      const savedWidth = settings.windowWidth || 450;
+      const savedHeight = settings.windowHeight || 550;
+      await appWindow.setSize(new LogicalSize(savedWidth, savedHeight));
+    }
+  } catch (e) {
+    console.error("Failed to resize window on tab change", e);
+  }
+});
+
 // 统一的休息遮罩状态
 const breakOverlayVisible = computed(() => {
   if (settings.timerMode === "countdown") {
