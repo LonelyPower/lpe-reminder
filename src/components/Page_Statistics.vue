@@ -661,6 +661,11 @@ const heatmapCells = computed(() => {
   align-items: center;
 }
 
+.summary-card {
+  justify-content: center;
+  text-align: center;
+}
+
 /* 总时长 */
 .summary-label {
   font-size: 14px;
