@@ -130,7 +130,7 @@ export async function addTimerRecord(record: Omit<TimerRecord, "user_id">): Prom
 /**
  * 更新计时记录
  */
-export async function updateTimerRecord(recordId: number, updates: Partial<Pick<TimerRecord, "name" | "category">>): Promise<void> {
+export async function updateTimerRecord(recordId: string, updates: Partial<Pick<TimerRecord, "name" | "category">>): Promise<void> {
   await invoke("db_update_timer_record", { recordId, updates });
 }
 

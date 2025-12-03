@@ -121,7 +121,7 @@ fn db_add_timer_record(record: TimerRecord, state: State<AppState>) -> Result<()
 
 #[tauri::command]
 fn db_update_timer_record(
-    record_id: i64,
+    record_id: String,
     updates: std::collections::HashMap<String, serde_json::Value>,
     state: State<AppState>
 ) -> Result<(), String> {
@@ -137,7 +137,7 @@ fn db_update_timer_record(
         .map(|s| s.to_string());
     
     let db = state.db.lock().unwrap();
-    db.update_timer_record(user_id, record_id, name, category).map_err(|e| e.to_string())
+    db.update_timer_record(user_id, &record_id, name, category).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
