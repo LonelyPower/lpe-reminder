@@ -64,6 +64,8 @@ const {
 // 窗口状态管理
 const {
   saveWindowState,
+  handleDialogOpen,
+  handleDialogClose,
   handleSettingsOpen,
   handleSettingsClose,
   setupTabSwitchWatcher,
@@ -208,6 +210,45 @@ onMounted(async () => {
     }
   );
   cleanupFunctions.value.push(stopDurationWatch);
+
+  // 6. 监听关闭确认 Dialog 显示状态，调整窗口大小
+  const stopCloseConfirmWatch = watch(
+    () => showCloseConfirm.value,
+    async (show) => {
+      if (show) {
+        await handleDialogOpen(400); // CloseConfirmDialog 宽度 400px
+      } else {
+        await handleDialogClose();
+      }
+    }
+  );
+  cleanupFunctions.value.push(stopCloseConfirmWatch);
+
+  // 7. 监听秒表完成 Dialog 显示状态，调整窗口大小
+  const stopStopwatchCompleteWatch = watch(
+    () => showStopwatchComplete.value,
+    async (show) => {
+      if (show) {
+        await handleDialogOpen(480); // StopwatchComplete Dialog 使用默认宽度 480px
+      } else {
+        await handleDialogClose();
+      }
+    }
+  );
+  cleanupFunctions.value.push(stopStopwatchCompleteWatch);
+
+  // 8. 监听休息界面显示状态，调整窗口大小
+  const stopBreakOverlayWatch = watch(
+    () => breakOverlayVisible.value,
+    async (show) => {
+      if (show) {
+        await handleDialogOpen(480); // Break Dialog 宽度 480px
+      } else {
+        await handleDialogClose();
+      }
+    }
+  );
+  cleanupFunctions.value.push(stopBreakOverlayWatch);
 });
 
 onBeforeUnmount(() => {
