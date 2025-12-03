@@ -36,6 +36,9 @@ const { addRecord } = useTimerHistory();
 // 选项卡状态
 const activeTab = ref<"timer" | "statistics">("timer");
 
+// 临时保存打开设置前的窗口宽度
+const tempWindowWidth = ref<number | undefined>(undefined);
+
 // 正计时相关状态
 const showStopwatchComplete = ref(false);
 const stopwatchWorkDuration = ref(0); // 保存工作时长用于对话框
@@ -258,8 +261,26 @@ async function handleBreakOverlayEnd() {
   }
 }
 
-function openSettings() {
+async function openSettings() {
   showSettings.value = true;
+  
+  // 将窗口宽度调整为 500px
+  const appWindow = getCurrentWindow();
+  try {
+    const size = await appWindow.innerSize();
+    const factor = await appWindow.scaleFactor();
+    const logicalSize = size.toLogical(factor);
+    
+    // 保存当前宽度以便恢复
+    if (!tempWindowWidth.value) {
+      tempWindowWidth.value = logicalSize.width;
+    }
+    
+    // 设置新宽度为 500px
+    await appWindow.setSize(new LogicalSize(500, logicalSize.height));
+  } catch (e) {
+    console.error("Failed to resize window for settings", e);
+  }
 }
 
 function closeApp() {
@@ -267,8 +288,24 @@ function closeApp() {
   win.close();
 }
 
-function closeSettings() {
+async function closeSettings() {
   showSettings.value = false;
+  
+  // 恢复原窗口宽度
+  const appWindow = getCurrentWindow();
+  try {
+    if (tempWindowWidth.value) {
+      const size = await appWindow.innerSize();
+      const factor = await appWindow.scaleFactor();
+      const logicalSize = size.toLogical(factor);
+      
+      // 恢复原宽度
+      await appWindow.setSize(new LogicalSize(tempWindowWidth.value, logicalSize.height));
+      tempWindowWidth.value = undefined;
+    }
+  } catch (e) {
+    console.error("Failed to restore window size", e);
+  }
 }
 
 function handleReset() {
