@@ -30,6 +30,41 @@ export function useTimerHandlers(
   const stopwatchWorkDuration = ref(0);
 
   /**
+   * 设置正计时提醒回调
+   */
+  function setupStopwatchReminderCallback(): void {
+    stopwatch.updateCallbacks({
+      onReminderReached: async () => {
+        // 1. 发送系统通知
+        if (settings.enableNotification) {
+          await safeExecute(async () => {
+            let permissionGranted = await isPermissionGranted();
+            if (!permissionGranted) {
+              const permission = await requestPermission();
+              permissionGranted = permission === "granted";
+            }
+
+            if (permissionGranted) {
+              sendNotification({
+                title: "提醒时间到！",
+                body: "已工作一段时间，别忘了休息哦！",
+                sound: "default",
+              });
+            }
+          }, "Send stopwatch reminder notification");
+        }
+
+        // 2. 播放提示音
+        if (settings.enableworkSound) {
+          await safeExecute(async () => {
+            await playAudio("/notification-piano.mp3", 0.5);
+          }, "Play stopwatch reminder sound");
+        }
+      },
+    });
+  }
+
+  /**
    * 设置倒计时器的回调函数
    */
   function setupTimerCallbacks(): void {
@@ -232,6 +267,7 @@ export function useTimerHandlers(
     stopwatchWorkDuration,
     setupTimerCallbacks,
     setupStopwatchWatcher,
+    setupStopwatchReminderCallback,
     handleCountdownBreakEnd,
     handleStopwatchBreakEnd,
     handleStopwatchComplete,

@@ -9,6 +9,8 @@ export interface AppSettings {
   breakDurationSeconds: number;
   stopwatchBreakMinutes: number;
   stopwatchBreakSeconds: number;
+  stopwatchReminderMinutes: number;
+  stopwatchReminderSeconds: number;
   enableworkSound: boolean;
   enablerestSound: boolean;
   enableNotification: boolean;
@@ -37,6 +39,8 @@ export const defaultSettings: AppSettings = {
   breakDurationSeconds: 0,
   stopwatchBreakMinutes: 5,
   stopwatchBreakSeconds: 0,
+  stopwatchReminderMinutes: 25,
+  stopwatchReminderSeconds: 0,
   enableworkSound: true,
   enablerestSound: true,
   enableNotification: true,

@@ -2,6 +2,7 @@ import { ref, onBeforeUnmount } from "vue";
 
 export interface StopwatchCallbacks {
   onBreakEnd?: () => void | Promise<void>;
+  onReminderReached?: () => void | Promise<void>;
 }
 
 /**
@@ -13,10 +14,12 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
   const isRunning = ref(false);
   const mode = ref<"work" | "break">("work"); // work: 工作中, break: 休息中
   const breakTargetMs = ref(0); // 休息目标时长
+  const reminderMs = ref(0); // 提醒时间（毫秒）
 
   let intervalId: number | null = null;
   let lastTick = 0; // 上一次 tick 的时间戳（ms）
   let breakEndTriggered = false; // 标记休息结束回调是否已触发
+  let reminderTriggered = false; // 标记提醒回调是否已触发
 
   function clearTimer() {
     if (intervalId !== null) {
@@ -30,6 +33,15 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     const delta = now - lastTick;
     lastTick = now;
     elapsedMs.value += delta;
+
+    // 检查工作提醒时间
+    if (mode.value === "work" && reminderMs.value > 0 && elapsedMs.value >= reminderMs.value && !reminderTriggered) {
+      reminderTriggered = true; // 标记已触发
+      // 触发提醒回调
+      if (callbacks?.onReminderReached) {
+        callbacks.onReminderReached();
+      }
+    }
 
     // 检查休息是否结束
     if (mode.value === "break" && elapsedMs.value >= breakTargetMs.value && !breakEndTriggered) {
@@ -56,6 +68,15 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
   }
 
   /**
+   * 设置提醒时间
+   * @param targetMs 提醒时间（毫秒）
+   */
+  function setReminderTime(targetMs: number) {
+    reminderMs.value = targetMs;
+    reminderTriggered = false; // 重置标志
+  }
+
+  /**
    * 暂停计时
    */
   function pause() {
@@ -71,6 +92,7 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     clearTimer();
     elapsedMs.value = 0;
     mode.value = "work";
+    reminderTriggered = false; // 重置标志
   }
 
   /**
@@ -105,7 +127,7 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
   }
 
   function updateCallbacks(newCallbacks: Partial<StopwatchCallbacks>) {
-    if (newCallbacks.onBreakEnd) {
+    if (newCallbacks.onBreakEnd || newCallbacks.onReminderReached) {
       callbacks = { ...callbacks, ...newCallbacks };
     }
   }
@@ -116,6 +138,7 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     // 清空回调引用，防止在组件销毁后触发
     if (callbacks) {
       callbacks.onBreakEnd = undefined;
+      callbacks.onReminderReached = undefined;
     }
     // 重置状态
     isRunning.value = false;
@@ -127,12 +150,14 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     isRunning,
     mode,
     breakTargetMs,
+    reminderMs,
     start,
     pause,
     stop,
     startBreak,
     endBreak,
     skipBreak,
+    setReminderTime,
     updateCallbacks,
   };
 }

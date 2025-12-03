@@ -56,6 +56,7 @@ const {
   stopwatchWorkDuration,
   setupTimerCallbacks,
   setupStopwatchWatcher,
+  setupStopwatchReminderCallback,
   handleCountdownBreakEnd,
   handleStopwatchBreakEnd,
   handleStopwatchComplete,
@@ -177,6 +178,14 @@ onMounted(async () => {
 
   // 2. 设置计时器回调
   setupTimerCallbacks();
+  setupStopwatchReminderCallback();
+
+  // 2.1 设置正计时提醒时间
+  const reminderMs = minutesSecondsToMs(
+    settings.stopwatchReminderMinutes,
+    settings.stopwatchReminderSeconds
+  );
+  stopwatch.setReminderTime(reminderMs);
 
   // 3. 启动各种监听和同步
   cleanupFunctions.value.push(
@@ -210,6 +219,16 @@ onMounted(async () => {
     }
   );
   cleanupFunctions.value.push(stopDurationWatch);
+
+  // 5.1 监听正计时提醒时间变化
+  const stopReminderWatch = watch(
+    () => [settings.stopwatchReminderMinutes, settings.stopwatchReminderSeconds],
+    ([newMin, newSec]) => {
+      const reminderMs = minutesSecondsToMs(newMin as number, newSec as number);
+      stopwatch.setReminderTime(reminderMs);
+    }
+  );
+  cleanupFunctions.value.push(stopReminderWatch);
 
   // 6. 监听关闭确认 Dialog 显示状态，调整窗口大小
   const stopCloseConfirmWatch = watch(
