@@ -170,7 +170,7 @@ function stopResize() {
 }
 
 // 为每个分类分配颜色
-const categoryColors: Record<string, string> = {
+const categoryColors = ref<Record<string, string>>({
     work: "#f59e0b",
     entertainment: "#ec4899",
     study: "#3b82f6",
@@ -178,7 +178,26 @@ const categoryColors: Record<string, string> = {
     reading: "#8b5cf6",
     meeting: "#ef4444",
     "未分类": "#6b7280",
-};
+});
+
+// 颜色池（用于自定义分类）
+const colorPalette = [
+    "#f59e0b", "#ec4899", "#3b82f6", "#22c55e", "#8b5cf6", "#ef4444",
+    "#06b6d4", "#f97316", "#84cc16", "#a855f7", "#14b8a6", "#fb923c",
+    "#10b981", "#6366f1", "#f43f5e", "#eab308", "#8b5cf6", "#059669"
+];
+
+// 为分类分配颜色（如果没有颜色则自动分配）
+function ensureColorForCategory(category: string) {
+    if (!categoryColors.value[category]) {
+        // 为自定义分类分配颜色
+        const existingColors = Object.values(categoryColors.value);
+        const availableColor = colorPalette.find(color => !existingColors.includes(color)) 
+            || colorPalette[Object.keys(categoryColors.value).length % colorPalette.length];
+        categoryColors.value[category] = availableColor;
+    }
+    return categoryColors.value[category];
+}
 
 // 生成饼图路径
 function generatePieChart() {
@@ -191,7 +210,7 @@ function generatePieChart() {
             category: item.category,
             label: item.label,
             path: `M ${chartCenter} ${chartCenter} m -${chartRadius}, 0 a ${chartRadius},${chartRadius} 0 1,0 ${chartRadius * 2},0 a ${chartRadius},${chartRadius} 0 1,0 -${chartRadius * 2},0`,
-            color: categoryColors[item.category] || categoryColors["未分类"],
+            color: ensureColorForCategory(item.category),
             percentage: item.percentage,
             duration: item.duration,
         }];
@@ -228,7 +247,7 @@ function generatePieChart() {
             category: item.category,
             label: item.label,
             path,
-            color: categoryColors[item.category] || categoryColors["未分类"],
+            color: ensureColorForCategory(item.category),
             percentage: item.percentage,
             duration: item.duration,
         };
@@ -559,7 +578,7 @@ const heatmapCells = computed(() => {
           >
             <div
               class="legend-color"
-              :style="{ backgroundColor: categoryColors[item.category] || categoryColors['未分类'] }"
+              :style="{ backgroundColor: ensureColorForCategory(item.category) }"
             ></div>
             <div class="legend-content">
               <div class="legend-header">
