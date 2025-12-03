@@ -143,9 +143,17 @@ export function useTimer(options: UseTimerOptions = {}) {
 
   const totalDurationMs = computed(() => currentTotalDurationMs.value);
 
+  function updateCallbacks(newCallbacks: Partial<UseTimerOptions>) {
+    if (newCallbacks.onWorkEnd) options.onWorkEnd = newCallbacks.onWorkEnd;
+    if (newCallbacks.onBreakEnd) options.onBreakEnd = newCallbacks.onBreakEnd;
+  }
+
   onBeforeUnmount(() => {
     // 清理定时器
     clearTimer();
+    // 清空回调引用，防止在组件销毁后触发
+    options.onWorkEnd = undefined;
+    options.onBreakEnd = undefined;
     // 重置所有状态，防止内存泄漏
     isRunning.value = false;
     mode.value = "idle";
@@ -164,5 +172,6 @@ export function useTimer(options: UseTimerOptions = {}) {
     reset,
     skipBreak,
     updateDurations,
+    updateCallbacks,
   };
 }

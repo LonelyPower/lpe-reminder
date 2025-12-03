@@ -307,7 +307,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn update_timer_record(&self, user_id: i64, record_id: i64, name: Option<String>, category: Option<String>) -> Result<()> {
+    pub fn update_timer_record(&self, user_id: i64, record_id: &str, name: Option<String>, category: Option<String>) -> Result<()> {
         let conn = self.conn.lock().unwrap();
 
         // 构建动态 SQL
@@ -328,8 +328,8 @@ impl Database {
             return Ok(()); // 无需更新
         }
 
-        // 添加 user_id 和 record_id 到参数列表
-        params_list.push(Box::new(record_id));
+        // 添加 record_id 和 user_id 到参数列表
+        params_list.push(Box::new(record_id.to_string()));
         params_list.push(Box::new(user_id));
 
         let sql = format!(

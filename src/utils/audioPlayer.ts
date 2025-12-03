@@ -8,7 +8,7 @@ export async function playAudio(
   audioPath: string,
   volume: number = 0.5
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const audio = new Audio();
     audio.volume = Math.max(0, Math.min(1, volume)); // 限制在 0-1 范围
 

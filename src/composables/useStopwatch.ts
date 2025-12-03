@@ -104,9 +104,22 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     endBreak();
   }
 
+  function updateCallbacks(newCallbacks: Partial<StopwatchCallbacks>) {
+    if (newCallbacks.onBreakEnd) {
+      callbacks = { ...callbacks, ...newCallbacks };
+    }
+  }
+
   onBeforeUnmount(() => {
+    // 清理定时器
     clearTimer();
+    // 清空回调引用，防止在组件销毁后触发
+    if (callbacks) {
+      callbacks.onBreakEnd = undefined;
+    }
+    // 重置状态
     isRunning.value = false;
+    mode.value = "work";
   });
 
   return {
@@ -120,5 +133,6 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     startBreak,
     endBreak,
     skipBreak,
+    updateCallbacks,
   };
 }
