@@ -226,7 +226,6 @@ fn toggle_floating_window(app: tauri::AppHandle, show: bool) -> Result<(), Strin
 fn show_tray_menu_at_cursor(app: tauri::AppHandle) -> Result<(), String> {
     // 获取托盘图标
     if let Some(_tray) = app.tray_by_id("tray") {
-        // TODO: Tauri v2 目前没有直接 API 在光标位置显示托盘菜单
         // 作为替代方案，我们触发一个事件让前端响应
         app.emit("show-tray-menu-requested", ()).map_err(|e| e.to_string())?;
         Ok(())
