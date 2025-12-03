@@ -66,9 +66,18 @@ function handleResetLocal() {
           <button class="tab-btn" :class="{ active: activeTab === 'account' }"
             @click="activeTab = 'account'">账号信息</button>
         </div>
-        <button type="button" class="save-btn" @click="handleSave" :disabled="isSaving">
-          {{ isSaving ? '保存中...' : '保存' }}
-        </button>
+        <div class="header-actions">
+          <button type="button" class="save-btn" @click="handleSave" :disabled="isSaving">
+            {{ isSaving ? '保存中...' : '保存' }}
+          </button>
+          <button type="button" class="close-btn-custom" @click="emit('close')" aria-label="关闭">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
 
     </template>
@@ -268,8 +277,7 @@ function handleResetLocal() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-right: 40px;
-  /* 为关闭按钮留出空间 */
+  gap: 12px;
 }
 
 .header-content h2 {
@@ -279,11 +287,15 @@ function handleResetLocal() {
   color: var(--text-primary);
 }
 
-/* 关闭按钮固定在右上角 */
+/* 隐藏 BaseDialog 的默认关闭按钮 */
 :deep(.close-btn) {
-  position: absolute;
-  top: 20px;
-  right: 24px;
+  display: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .save-btn {
@@ -305,6 +317,26 @@ function handleResetLocal() {
 .save-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.close-btn-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-btn-custom:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .tabs {
@@ -468,7 +500,8 @@ function handleResetLocal() {
   border-color: var(--text-secondary);
 }
 
-.footer-actions {
+.footer-actions,
+.dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -476,7 +509,8 @@ function handleResetLocal() {
   border-top: 1px solid var(--border-color);
 }
 
-.footer-actions button {
+.footer-actions button,
+.dialog-actions button {
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 14px;
