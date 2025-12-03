@@ -178,17 +178,41 @@ watch(
 );
 
 // 监听选项卡切换，自动调整窗口大小
-watch(activeTab, async (newTab) => {
+watch(activeTab, async (newTab, oldTab) => {
   const appWindow = getCurrentWindow();
   try {
+    // 先保存旧选项卡的窗口尺寸（不保存位置）
+    if (oldTab) {
+      const size = await appWindow.innerSize();
+      const factor = await appWindow.scaleFactor();
+      const logicalSize = size.toLogical(factor);
+      
+      if (oldTab === "timer") {
+        settings.timerWindowWidth = logicalSize.width;
+        settings.timerWindowHeight = logicalSize.height;
+        await saveSetting("timerWindowWidth", logicalSize.width.toString());
+        await saveSetting("timerWindowHeight", logicalSize.height.toString());
+        console.log(`Saved timer window size: ${logicalSize.width}x${logicalSize.height}`);
+      } else {
+        settings.statisticsWindowWidth = logicalSize.width;
+        settings.statisticsWindowHeight = logicalSize.height;
+        await saveSetting("statisticsWindowWidth", logicalSize.width.toString());
+        await saveSetting("statisticsWindowHeight", logicalSize.height.toString());
+        console.log(`Saved statistics window size: ${logicalSize.width}x${logicalSize.height}`);
+      }
+    }
+
+    // 然后切换到目标选项卡的窗口尺寸
     if (newTab === "statistics") {
-      // 切换到统计页面，使用宽体布局
-      await appWindow.setSize(new LogicalSize(800, 600));
+      const width = settings.statisticsWindowWidth ?? 800;
+      const height = settings.statisticsWindowHeight ?? 600;
+      console.log(`Switching to statistics, size: ${width}x${height}`);
+      await appWindow.setSize(new LogicalSize(width, height));
     } else {
-      // 切换回计时器，恢复正常尺寸
-      const savedWidth = settings.windowWidth || 450;
-      const savedHeight = settings.windowHeight || 550;
-      await appWindow.setSize(new LogicalSize(savedWidth, savedHeight));
+      const width = settings.timerWindowWidth ?? 450;
+      const height = settings.timerWindowHeight ?? 550;
+      console.log(`Switching to timer, size: ${width}x${height}`);
+      await appWindow.setSize(new LogicalSize(width, height));
     }
   } catch (e) {
     console.error("Failed to resize window on tab change", e);
@@ -324,6 +348,43 @@ async function handleStopwatchBreakEnd() {
   stopwatch.endBreak();
 }
 
+// 定义保存窗口状态（尺寸和位置）的函数
+const saveWindowState = async (savePosition: boolean = true) => {
+  const appWindow = getCurrentWindow();
+  try {
+    const size = await appWindow.innerSize();
+    const factor = await appWindow.scaleFactor();
+    const logicalSize = size.toLogical(factor);
+    
+    // 根据当前选项卡保存对应的窗口尺寸
+    if (activeTab.value === "timer") {
+      settings.timerWindowWidth = logicalSize.width;
+      settings.timerWindowHeight = logicalSize.height;
+      await saveSetting("timerWindowWidth", logicalSize.width.toString());
+      await saveSetting("timerWindowHeight", logicalSize.height.toString());
+      console.log(`Saved timer window size: ${logicalSize.width}x${logicalSize.height}`);
+    } else {
+      settings.statisticsWindowWidth = logicalSize.width;
+      settings.statisticsWindowHeight = logicalSize.height;
+      await saveSetting("statisticsWindowWidth", logicalSize.width.toString());
+      await saveSetting("statisticsWindowHeight", logicalSize.height.toString());
+      console.log(`Saved statistics window size: ${logicalSize.width}x${logicalSize.height}`);
+    }
+    
+    // 保存窗口位置（如果需要）
+    if (savePosition) {
+      const position = await appWindow.innerPosition();
+      const logicalPosition = position.toLogical(factor);
+      settings.windowX = logicalPosition.x;
+      settings.windowY = logicalPosition.y;
+      await saveSetting("windowX", logicalPosition.x.toString());
+      await saveSetting("windowY", logicalPosition.y.toString());
+    }
+  } catch (e) {
+    console.error("Failed to save window state", e);
+  }
+};
+
 async function handleCloseConfirm(minimize: boolean, remember: boolean) {
   console.log("[CloseConfirm] minimize:", minimize, "remember:", remember);
   showCloseConfirm.value = false;
@@ -350,30 +411,6 @@ async function handleCloseConfirm(minimize: boolean, remember: boolean) {
 
 onMounted(async () => {
   const appWindow = getCurrentWindow();
-
-  // 定义保存窗口状态（尺寸和位置）的函数
-  const saveWindowState = async () => {
-    try {
-      const size = await appWindow.innerSize();
-      const position = await appWindow.innerPosition();
-      const factor = await appWindow.scaleFactor();
-      
-      const logicalSize = size.toLogical(factor);
-      const logicalPosition = position.toLogical(factor);
-      
-      settings.windowWidth = logicalSize.width;
-      settings.windowHeight = logicalSize.height;
-      settings.windowX = logicalPosition.x;
-      settings.windowY = logicalPosition.y;
-      
-      await saveSetting("windowWidth", logicalSize.width.toString());
-      await saveSetting("windowHeight", logicalSize.height.toString());
-      await saveSetting("windowX", logicalPosition.x.toString());
-      await saveSetting("windowY", logicalPosition.y.toString());
-    } catch (e) {
-      console.error("Failed to save window state", e);
-    }
-  };
 
   // 定义保存悬浮窗位置的函数
   const saveFloatingWindowPosition = async (forceSaveToDb: boolean = false) => {
@@ -416,18 +453,21 @@ onMounted(async () => {
     console.log("✓ Settings loaded and ready");
 
     // 4. 恢复窗口尺寸和位置
-    const savedWidth = settings.windowWidth;
-    const savedHeight = settings.windowHeight;
+    // 根据当前选项卡恢复对应的窗口尺寸
+    const savedWidth = activeTab.value === "timer" 
+      ? (settings.timerWindowWidth || 450)
+      : (settings.statisticsWindowWidth || 800);
+    const savedHeight = activeTab.value === "timer"
+      ? (settings.timerWindowHeight || 550)
+      : (settings.statisticsWindowHeight || 600);
     const savedX = settings.windowX;
     const savedY = settings.windowY;
 
-    if (savedWidth && savedHeight) {
-      console.log(`Restoring window size to ${savedWidth}x${savedHeight}`);
-      try {
-        await appWindow.setSize(new LogicalSize(savedWidth, savedHeight));
-      } catch (e) {
-        console.error("Failed to restore window size", e);
-      }
+    console.log(`Restoring ${activeTab.value} window size to ${savedWidth}x${savedHeight}`);
+    try {
+      await appWindow.setSize(new LogicalSize(savedWidth, savedHeight));
+    } catch (e) {
+      console.error("Failed to restore window size", e);
     }
     
     if (savedX !== undefined && savedY !== undefined) {
