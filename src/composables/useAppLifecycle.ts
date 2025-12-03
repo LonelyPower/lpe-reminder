@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { getCurrentWindow, LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
-import { initDatabase, migrateFromLocalStorage } from "../utils/database";
+import { initDatabase } from "../utils/database";
 import { preloadAudio } from "../utils/audioPlayer";
 import { generateTestData } from "../utils/generateTestData";
 import type { AppSettings } from "./useSettingsDB";
@@ -27,20 +27,11 @@ export function useAppLifecycle(
       await initDatabase();
       console.log("✓ Database initialized");
 
-      // 2. 检查是否需要从 localStorage 迁移数据
-      const hasOldData =
-        localStorage.getItem("lpe-reminder-settings") ||
-        localStorage.getItem("lpe-reminder-history");
-      if (hasOldData) {
-        console.log("Found old localStorage data, starting migration...");
-        await migrateFromLocalStorage();
-      }
-
-      // 3. 等待设置加载完成（解决竞态问题）
+      // 2. 等待设置加载完成（解决竞态问题）
       await initSettings();
       console.log("✓ Settings loaded and ready");
 
-      // 4. 恢复窗口尺寸和位置
+      // 3. 恢复窗口尺寸和位置
       const savedWidth =
         activeTab.value === "timer"
           ? settings.timerWindowWidth || 450
