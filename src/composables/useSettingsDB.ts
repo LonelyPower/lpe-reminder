@@ -13,6 +13,7 @@ export interface AppSettings {
   stopwatchReminderSeconds: number;
   enableworkSound: boolean;
   enablerestSound: boolean;
+  enableStopwatchReminderSound: boolean;
   enableNotification: boolean;
   closeBehavior: "ask" | "minimize" | "quit";
   enableFloatingWindow: boolean;
@@ -43,6 +44,7 @@ export const defaultSettings: AppSettings = {
   stopwatchReminderSeconds: 0,
   enableworkSound: true,
   enablerestSound: true,
+  enableStopwatchReminderSound: true,
   enableNotification: true,
   closeBehavior: "ask",
   enableFloatingWindow: true,

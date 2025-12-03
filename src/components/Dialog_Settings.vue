@@ -172,6 +172,12 @@ function handleResetLocal() {
               <span>启用休息结束提示音</span>
             </label>
           </div>
+          <div v-if="localSettings.timerMode === 'stopwatch'" class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.enableStopwatchReminderSound" />
+              <span>启用正计时提醒提示音</span>
+            </label>
+          </div>
           <div class="form-group checkbox-group">
             <label>
               <input type="checkbox" v-model="localSettings.enableNotification" />

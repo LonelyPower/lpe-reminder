@@ -55,7 +55,7 @@ export function useTimerHandlers(
         }
 
         // 2. 播放提示音
-        if (settings.enableworkSound) {
+        if (settings.enableStopwatchReminderSound) {
           await safeExecute(async () => {
             await playAudio("/notification-piano.mp3", 0.5);
           }, "Play stopwatch reminder sound");
