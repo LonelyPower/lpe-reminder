@@ -104,6 +104,12 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     endBreak();
   }
 
+  function updateCallbacks(newCallbacks: Partial<StopwatchCallbacks>) {
+    if (newCallbacks.onBreakEnd) {
+      callbacks = { ...callbacks, ...newCallbacks };
+    }
+  }
+
   onBeforeUnmount(() => {
     clearTimer();
     isRunning.value = false;
@@ -120,5 +126,6 @@ export function useStopwatch(callbacks?: StopwatchCallbacks) {
     startBreak,
     endBreak,
     skipBreak,
+    updateCallbacks,
   };
 }

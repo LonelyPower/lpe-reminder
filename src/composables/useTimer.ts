@@ -143,6 +143,11 @@ export function useTimer(options: UseTimerOptions = {}) {
 
   const totalDurationMs = computed(() => currentTotalDurationMs.value);
 
+  function updateCallbacks(newCallbacks: Partial<UseTimerOptions>) {
+    if (newCallbacks.onWorkEnd) options.onWorkEnd = newCallbacks.onWorkEnd;
+    if (newCallbacks.onBreakEnd) options.onBreakEnd = newCallbacks.onBreakEnd;
+  }
+
   onBeforeUnmount(() => {
     // 清理定时器
     clearTimer();
@@ -164,5 +169,6 @@ export function useTimer(options: UseTimerOptions = {}) {
     reset,
     skipBreak,
     updateDurations,
+    updateCallbacks,
   };
 }
