@@ -47,7 +47,7 @@ onActivated(() => {
 });
 
 // 时间范围选择
-const timeRange = ref<"today" | "week" | "month" | "all">("week");
+const timeRange = ref<"today" | "week" | "month" | "all">("today");
 
 // 过滤工作记录（排除休息记录）
 const workRecords = computed(() => {
