@@ -72,3 +72,6 @@ eye_timer_copilot_prompts.html
 README.html
 lpe_reminder.db
 src/utils/generateTestData.ts
+UPDATER_CHECKLIST.md
+UPDATER_QUICKSTART_CN.md
+UPDATER_SETUP_CN.md

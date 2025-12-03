@@ -179,6 +179,12 @@ onMounted(async () => {
   // 2. 设置计时器回调
   setupTimerCallbacks();
   setupStopwatchReminderCallback();
+  
+  // 2.1 启动时自动检查更新（静默）
+  if (import.meta.env.PROD) {
+    const { checkUpdatesOnStartup } = await import("./utils/updater");
+    checkUpdatesOnStartup();
+  }
 
   // 2.1 设置正计时提醒时间
   const reminderMs = minutesSecondsToMs(

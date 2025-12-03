@@ -3,6 +3,7 @@ import { reactive, watch, ref } from "vue";
 import { useSettings } from "../composables/useSettingsDB";
 import UserInfoSection from "./Section_UserInfo.vue";
 import BaseDialog from "./Dialog_Base.vue";
+import { checkForUpdates } from "../utils/updater";
 
 interface Props {
   visible: boolean;
@@ -20,6 +21,7 @@ const { settings: globalSettings, defaultSettings, save: saveSettings } = useSet
 const localSettings = reactive({ ...globalSettings });
 const activeTab = ref<'general' | 'account'>('general');
 const isSaving = ref(false);
+const isCheckingUpdate = ref(false);
 
 // 当弹窗打开时，同步全局配置到本地
 watch(
@@ -51,6 +53,15 @@ async function handleSave() {
 
 function handleResetLocal() {
   Object.assign(localSettings, defaultSettings);
+}
+
+async function handleCheckUpdate() {
+  isCheckingUpdate.value = true;
+  try {
+    await checkForUpdates(false);
+  } finally {
+    isCheckingUpdate.value = false;
+  }
 }
 </script>
 
@@ -247,6 +258,14 @@ function handleResetLocal() {
                 <option value="minimize">最小化到托盘</option>
                 <option value="quit">退出应用</option>
               </select>
+            </label>
+          </div>
+          <div class="form-group">
+            <label>
+              <span>应用更新</span>
+              <button type="button" class="update-btn" @click="handleCheckUpdate" :disabled="isCheckingUpdate">
+                {{ isCheckingUpdate ? '检查中...' : '检查更新' }}
+              </button>
             </label>
           </div>
         </div>
@@ -537,5 +556,27 @@ function handleResetLocal() {
 .ghost:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.update-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background: transparent;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 100px;
+}
+
+.update-btn:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: #ffffff;
+}
+
+.update-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
