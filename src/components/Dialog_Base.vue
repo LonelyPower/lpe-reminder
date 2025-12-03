@@ -134,6 +134,7 @@ const emit = defineEmits<{
     padding: 16px 24px;
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
+    justify-content: flex-end;
 }
 
 /* 动画 */
