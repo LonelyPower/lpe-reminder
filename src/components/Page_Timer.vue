@@ -202,7 +202,7 @@ function onPrimaryClick() {
 }
 
 .category-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   text-align: center;
   max-width: 400px;
   margin-left: auto;
@@ -214,5 +214,20 @@ function onPrimaryClick() {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 12px;
+}
+
+/* 强化开始按钮 */
+.actions .primary {
+  min-width: 160px;
+  padding: 14px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.25);
+}
+
+.actions .primary:hover {
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);
+  transform: translateY(-2px);
 }
 </style>

@@ -22,7 +22,7 @@ const emit = defineEmits<{
 <template>
     <!-- <Teleport to="body"> -->
     <Transition name="dialog-fade">
-        <div v-if="visible" class="backdrop" @click.self="emit('close')">
+        <div v-if="visible" class="backdrop" @click.self="emit('close')" data-tauri-drag-region>
             <div class="dialog" :style="{ width: props.width, height: props.height }">
                 <!-- 头部 -->
                 <div v-if="showHeader" class="dialog-header">
@@ -67,6 +67,7 @@ const emit = defineEmits<{
     justify-content: center;
     z-index: 1000;
     padding: 20px;
+    cursor: move;
 }
 
 .dialog {
@@ -77,6 +78,7 @@ const emit = defineEmits<{
     background: var(--bg-card);
     box-shadow: 0 18px 40px var(--shadow-color);
     display: flex;
+    cursor: default;
     flex-direction: column;
     color: var(--text-primary);
     border: 1px solid var(--border-color);

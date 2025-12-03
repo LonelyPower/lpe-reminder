@@ -16,6 +16,8 @@
         "title": "lpe-reminder",
         "width": 450,
         "height": 550,
+        "minWidth": 350,
+        "minHeight": 600,
         "decorations": false,
         "transparent": true,
         "shadow": false,

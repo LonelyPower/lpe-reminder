@@ -43,7 +43,7 @@ function handleSelect(value: string) {
 </script>
 
 <template>
-  <div class="category-selector" :class="{ 'stopwatch-mode': mode === 'stopwatch' }">
+  <div class="category-selector" :class="{ 'stopwatch-mode': mode === 'stopwatch', 'countdown-mode': mode === 'countdown' }">
     <div class="category-grid">
       <button
         v-for="cat in categories"
@@ -132,5 +132,46 @@ function handleSelect(value: string) {
 
 .category-selector.stopwatch-mode .category-label {
   font-size: 12px;
+}
+
+/* 倒计时模式 - 分段式控件 */
+.category-selector.countdown-mode .category-grid {
+  display: inline-flex;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 0;
+}
+
+.category-selector.countdown-mode .category-item {
+  flex-direction: row;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  min-height: auto;
+  min-width: auto;
+  transition: all 0.2s;
+}
+
+.category-selector.countdown-mode .category-item:hover {
+  background: var(--bg-hover);
+  transform: none;
+}
+
+.category-selector.countdown-mode .category-item.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.category-selector.countdown-mode .category-icon {
+  font-size: 16px;
+}
+
+.category-selector.countdown-mode .category-label {
+  font-size: 13px;
+  font-weight: 500;
 }
 </style>

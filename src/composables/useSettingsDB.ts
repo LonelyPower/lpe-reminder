@@ -20,8 +20,10 @@ export interface AppSettings {
   floatingWindowShowState: boolean;
   floatingWindowX?: number;
   floatingWindowY?: number;
-  windowWidth?: number;
-  windowHeight?: number;
+  timerWindowWidth?: number;
+  timerWindowHeight?: number;
+  statisticsWindowWidth?: number;
+  statisticsWindowHeight?: number;
   windowX?: number;
   windowY?: number;
   theme: "light" | "dark" | "system";
@@ -46,8 +48,10 @@ export const defaultSettings: AppSettings = {
   floatingWindowShowState: true,
   floatingWindowX: undefined,
   floatingWindowY: undefined,
-  windowWidth: 450,
-  windowHeight: 550,
+  timerWindowWidth: 450,
+  timerWindowHeight: 550,
+  statisticsWindowWidth: 800,
+  statisticsWindowHeight: 600,
   windowX: undefined,
   windowY: undefined,
   theme: "dark",
