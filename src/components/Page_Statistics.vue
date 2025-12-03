@@ -154,6 +154,19 @@ const categoryColors: Record<string, string> = {
 function generatePieChart() {
     if (categoryStatsWithPercentage.value.length === 0) return [];
 
+    // 如果只有一个分类，直接绘制整个圆
+    if (categoryStatsWithPercentage.value.length === 1) {
+        const item = categoryStatsWithPercentage.value[0];
+        return [{
+            category: item.category,
+            label: item.label,
+            path: `M ${chartCenter} ${chartCenter} m -${chartRadius}, 0 a ${chartRadius},${chartRadius} 0 1,0 ${chartRadius * 2},0 a ${chartRadius},${chartRadius} 0 1,0 -${chartRadius * 2},0`,
+            color: categoryColors[item.category] || categoryColors["未分类"],
+            percentage: item.percentage,
+            duration: item.duration,
+        }];
+    }
+
     let currentAngle = -90; // 从顶部开始
 
     return categoryStatsWithPercentage.value.map(item => {
