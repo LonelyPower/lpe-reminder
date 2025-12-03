@@ -58,12 +58,19 @@ function handleResetLocal() {
   <BaseDialog :visible="props.visible" title="设置" width="450px" height="550px" :show-footer="false"
     @close="emit('close')">
     <template #header>
-      <div class="tabs">
-        <button class="tab-btn" :class="{ active: activeTab === 'general' }"
-          @click="activeTab = 'general'">常规设置</button>
-        <button class="tab-btn" :class="{ active: activeTab === 'account' }"
-          @click="activeTab = 'account'">账号信息</button>
+      <div class="header-content">
+        <!-- <h2>设置</h2> -->
+        <div class="tabs">
+          <button class="tab-btn" :class="{ active: activeTab === 'general' }"
+            @click="activeTab = 'general'">常规设置</button>
+          <button class="tab-btn" :class="{ active: activeTab === 'account' }"
+            @click="activeTab = 'account'">账号信息</button>
+        </div>
+        <button type="button" class="save-btn" @click="handleSave" :disabled="isSaving">
+          {{ isSaving ? '保存中...' : '保存' }}
+        </button>
       </div>
+
     </template>
 
     <template #default>
@@ -172,12 +179,6 @@ function handleResetLocal() {
               <span>启用休息结束提示音</span>
             </label>
           </div>
-          <div v-if="localSettings.timerMode === 'stopwatch'" class="form-group checkbox-group">
-            <label>
-              <input type="checkbox" v-model="localSettings.enableStopwatchReminderSound" />
-              <span>启用正计时提醒提示音</span>
-            </label>
-          </div>
           <div class="form-group checkbox-group">
             <label>
               <input type="checkbox" v-model="localSettings.enableNotification" />
@@ -242,15 +243,12 @@ function handleResetLocal() {
         </div>
       </div>
 
-      <div class="footer-actions">
+      <div class="dialog-actions">
         <button type="button" class="ghost" @click="handleResetLocal" :disabled="isSaving">
           恢复默认
         </button>
         <button type="button" class="ghost" @click="emit('close')" :disabled="isSaving">
           取消
-        </button>
-        <button type="button" class="primary" @click="handleSave" :disabled="isSaving">
-          {{ isSaving ? '保存中...' : '保存' }}
         </button>
       </div>
     </template>
@@ -259,19 +257,55 @@ function handleResetLocal() {
 
 <style scoped>
 /* 自定义头部布局 */
-/* :deep(.dialog-header) {
+:deep(.dialog-header) {
   flex-direction: column;
   align-items: stretch;
-  gap: 0;
+  gap: 12px;
   position: relative;
-} */
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 40px;
+  /* 为关闭按钮留出空间 */
+}
+
+.header-content h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
 
 /* 关闭按钮固定在右上角 */
-/* :deep(.close-btn) {
+:deep(.close-btn) {
   position: absolute;
   top: 20px;
   right: 24px;
-} */
+}
+
+.save-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: var(--primary-color);
+  color: #ffffff;
+  transition: all 0.2s;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .tabs {
   display: flex;
