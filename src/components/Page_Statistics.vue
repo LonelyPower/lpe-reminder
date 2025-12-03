@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { useTimerHistory } from "../composables/useTimerHistoryDB";
 import type { TimerRecord } from "../composables/useTimerHistoryDB";
 
-const { records, deleteRecord, clearRecords, getTodayRecords, getWeekRecords, getTotalDuration } = useTimerHistory();
+const { records, deleteRecord, clearRecords } = useTimerHistory();
 
 // 分类标签映射
 const categoryLabels: Record<string, string> = {
