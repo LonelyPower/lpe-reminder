@@ -25,12 +25,13 @@ export function useFloatingWindow(
 
   /**
    * 保存悬浮窗位置
+   * @param forceSaveToDb 是否强制保存到数据库（退出时使用）
    */
   async function saveFloatingWindowPosition(
     forceSaveToDb: boolean = false
   ): Promise<void> {
-    if (!settings.enableFloatingWindow) return;
-
+    // 注意：不检查 enableFloatingWindow，即使关闭也要保存位置
+    // 这样下次开启时可以恢复到关闭前的位置
     try {
       const pos = await safeInvoke<[number, number]>(
         "get_floating_window_position"
@@ -103,7 +104,7 @@ export function useFloatingWindow(
       async (enabled) => {
         console.log("[FloatingWindow] Toggle:", enabled);
         if (enabled) {
-          // 恢复位置
+          // 开启：先恢复位置，再显示窗口
           if (
             settings.floatingWindowX !== undefined &&
             settings.floatingWindowY !== undefined
@@ -115,9 +116,9 @@ export function useFloatingWindow(
           }
           safeInvoke("toggle_floating_window", { show: true });
         } else {
-          // 保存位置
+          // 关闭：先保存位置（窗口仍可见），再隐藏窗口
           await saveFloatingWindowPosition();
-          safeInvoke("toggle_floating_window", { show: false });
+          await safeInvoke("toggle_floating_window", { show: false });
         }
       },
       { immediate: true }
