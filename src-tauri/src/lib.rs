@@ -159,6 +159,42 @@ fn db_clear_timer_records(state: State<AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn db_get_custom_categories(state: State<AppState>) -> Result<Vec<db::CustomCategory>, String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.get_custom_categories(user_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_add_custom_category(value: String, label: String, icon: String, state: State<AppState>) -> Result<i64, String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.add_custom_category(user_id, value, label, icon).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_update_custom_category(value: String, label: String, icon: String, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.update_custom_category(user_id, &value, label, icon).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_custom_category(value: String, state: State<AppState>) -> Result<(), String> {
+    let user_id = state.current_user_id.lock().unwrap()
+        .ok_or("User not initialized")?;
+    
+    let db = state.db.lock().unwrap();
+    db.delete_custom_category(user_id, &value).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn set_tray_icon(app: tauri::AppHandle, state: &str, app_state: State<AppState>) {
     if let Some(tray) = app.tray_by_id("tray") {
         // 更新提示文本
@@ -447,7 +483,11 @@ pub fn run() {
             db_add_timer_record,
             db_update_timer_record,
             db_delete_timer_record,
-            db_clear_timer_records
+            db_clear_timer_records,
+            db_get_custom_categories,
+            db_add_custom_category,
+            db_update_custom_category,
+            db_delete_custom_category
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

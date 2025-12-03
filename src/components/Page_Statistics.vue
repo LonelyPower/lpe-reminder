@@ -2,18 +2,34 @@
 import { computed, ref } from "vue";
 import { useTimerHistory } from "../composables/useTimerHistoryDB";
 import type { TimerRecord } from "../composables/useTimerHistoryDB";
+import { getCustomCategories } from "../utils/database";
 
-const { records, deleteRecord, clearRecords } = useTimerHistory();
-
-// 分类标签映射
-const categoryLabels: Record<string, string> = {
+// 分类标签映射（动态加载）
+const categoryLabels = ref<Record<string, string>>({
     work: "工作",
     entertainment: "娱乐",
     study: "学习",
     exercise: "运动",
     reading: "阅读",
     meeting: "会议",
+});
+
+// 立即加载自定义分类（在 records 初始化之前）
+const loadCategories = async () => {
+    try {
+        const categories = await getCustomCategories();
+        categories.forEach(cat => {
+            categoryLabels.value[cat.value] = cat.label;
+        });
+    } catch (error) {
+        console.error("Failed to load categories for statistics:", error);
+    }
 };
+
+// 立即执行加载
+loadCategories();
+
+const { records, deleteRecord, clearRecords } = useTimerHistory();
 
 // 时间范围选择
 const timeRange = ref<"today" | "week" | "month" | "all">("week");
@@ -63,7 +79,7 @@ const categoryStats = computed(() => {
     return Object.entries(stats)
         .map(([category, duration]) => ({
             category,
-            label: categoryLabels[category] || category,
+            label: categoryLabels.value[category] || category,
             duration,
             percentage: 0, // 稍后计算
         }))
@@ -214,7 +230,7 @@ const hoveredCategory = ref<string | null>(null);
 // 获取分类显示名称
 function getCategoryLabel(category: string | null): string {
     if (!category) return "未分类";
-    return categoryLabels[category] || category;
+    return categoryLabels.value[category] || category;
 }
 
 // 格式化日期时间

@@ -35,6 +35,16 @@ pub struct TimerRecord {
     pub created_at: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CustomCategory {
+    pub id: i64,
+    pub user_id: i64,
+    pub value: String,
+    pub label: String,
+    pub icon: String,
+    pub created_at: i64,
+}
+
 pub struct Database {
     conn: Mutex<Connection>,
 }
@@ -102,6 +112,21 @@ impl Database {
             [],
         );
 
+        // 创建自定义分类表
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS custom_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                value TEXT NOT NULL,
+                label TEXT NOT NULL,
+                icon TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(user_id, value)
+            )",
+            [],
+        )?;
+
         // 创建索引
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_timer_records_user_id 
@@ -112,6 +137,12 @@ impl Database {
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_timer_records_end_time 
              ON timer_records(end_time DESC)",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_custom_categories_user_id 
+             ON custom_categories(user_id)",
             [],
         )?;
 
@@ -363,6 +394,73 @@ impl Database {
         )?;
 
         println!("✓ All timer records cleared for user {}", user_id);
+        Ok(())
+    }
+
+    // ==================== 自定义分类 CRUD ====================
+
+    pub fn get_custom_categories(&self, user_id: i64) -> Result<Vec<CustomCategory>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, user_id, value, label, icon, created_at 
+             FROM custom_categories 
+             WHERE user_id = ?1 
+             ORDER BY created_at ASC"
+        )?;
+
+        let categories = stmt.query_map(params![user_id], |row| {
+            Ok(CustomCategory {
+                id: row.get(0)?,
+                user_id: row.get(1)?,
+                value: row.get(2)?,
+                label: row.get(3)?,
+                icon: row.get(4)?,
+                created_at: row.get(5)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(categories)
+    }
+
+    pub fn add_custom_category(&self, user_id: i64, value: String, label: String, icon: String) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+
+        conn.execute(
+            "INSERT INTO custom_categories (user_id, value, label, icon, created_at) 
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![user_id, value, label, icon, now],
+        )?;
+
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn update_custom_category(&self, user_id: i64, value: &str, label: String, icon: String) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+
+        conn.execute(
+            "UPDATE custom_categories 
+             SET label = ?1, icon = ?2 
+             WHERE user_id = ?3 AND value = ?4",
+            params![label, icon, user_id, value],
+        )?;
+
+        Ok(())
+    }
+
+    pub fn delete_custom_category(&self, user_id: i64, value: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+
+        conn.execute(
+            "DELETE FROM custom_categories 
+             WHERE user_id = ?1 AND value = ?2",
+            params![user_id, value],
+        )?;
+
         Ok(())
     }
 }

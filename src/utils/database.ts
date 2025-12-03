@@ -148,4 +148,42 @@ export async function clearTimerRecords(): Promise<void> {
   await invoke("db_clear_timer_records");
 }
 
+// ==================== 自定义分类 ====================
+
+export interface CustomCategory {
+  id: number;
+  user_id: number;
+  value: string;
+  label: string;
+  icon: string;
+  created_at: number;
+}
+
+/**
+ * 获取所有自定义分类
+ */
+export async function getCustomCategories(): Promise<CustomCategory[]> {
+  return await invoke("db_get_custom_categories");
+}
+
+/**
+ * 添加自定义分类
+ */
+export async function addCustomCategory(value: string, label: string, icon: string): Promise<number> {
+  return await invoke("db_add_custom_category", { value, label, icon });
+}
+
+/**
+ * 更新自定义分类
+ */
+export async function updateCustomCategory(value: string, label: string, icon: string): Promise<void> {
+  await invoke("db_update_custom_category", { value, label, icon });
+}
+
+/**
+ * 删除自定义分类
+ */
+export async function deleteCustomCategory(value: string): Promise<void> {
+  await invoke("db_delete_custom_category", { value });
+}
 
