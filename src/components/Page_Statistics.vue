@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onActivated } from "vue";
 import { useTimerHistory } from "../composables/useTimerHistoryDB";
 import type { TimerRecord } from "../composables/useTimerHistoryDB";
 import { getCustomCategories } from "../utils/database";
@@ -14,10 +14,19 @@ const categoryLabels = ref<Record<string, string>>({
     meeting: "会议",
 });
 
-// 立即加载自定义分类（在 records 初始化之前）
+// 加载自定义分类
 const loadCategories = async () => {
     try {
         const categories = await getCustomCategories();
+        // 重置为默认值，然后添加数据库中的分类
+        categoryLabels.value = {
+            work: "工作",
+            entertainment: "娱乐",
+            study: "学习",
+            exercise: "运动",
+            reading: "阅读",
+            meeting: "会议",
+        };
         categories.forEach(cat => {
             categoryLabels.value[cat.value] = cat.label;
         });
@@ -30,6 +39,11 @@ const loadCategories = async () => {
 loadCategories();
 
 const { records, deleteRecord, clearRecords } = useTimerHistory();
+
+// 当页面激活时重新加载分类（处理从其他页面切换回来的情况）
+onActivated(() => {
+    loadCategories();
+});
 
 // 时间范围选择
 const timeRange = ref<"today" | "week" | "month" | "all">("week");

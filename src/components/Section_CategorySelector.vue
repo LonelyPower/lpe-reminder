@@ -309,6 +309,7 @@ function handleSelect(value: string) {
   gap: 2px;
   opacity: 0;
   transition: opacity 0.2s;
+  z-index: 10;
 }
 
 .category-item:hover .action-btns {
@@ -331,6 +332,7 @@ function handleSelect(value: string) {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .edit-btn:hover {
