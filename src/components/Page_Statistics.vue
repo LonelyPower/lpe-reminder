@@ -3,6 +3,7 @@ import { computed, ref, onActivated } from "vue";
 import { useTimerHistory } from "../composables/useTimerHistoryDB";
 import type { TimerRecord } from "../composables/useTimerHistoryDB";
 import { getCustomCategories } from "../utils/database";
+import { confirm } from '@tauri-apps/plugin-dialog';
 
 // 分类标签映射（动态加载）
 const categoryLabels = ref<Record<string, string>>({
@@ -329,10 +330,15 @@ const filteredAllRecords = computed(() => {
 });
 
 // 确认清空
-function handleClearAll() {
+async function handleClearAll() {
     if (records.value.length === 0) return;
 
-    if (confirm(`确定要清空所有 ${records.value.length} 条历史记录吗？此操作不可恢复。`)) {
+    const confirmed = await confirm(
+        `确定要清空所有 ${records.value.length} 条历史记录吗？此操作不可恢复。`,
+        { title: "确认清空", kind: "warning" }
+    );
+
+    if (confirmed) {
         clearRecords();
     }
 }
