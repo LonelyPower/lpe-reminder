@@ -78,3 +78,6 @@ UPDATER_SETUP_CN.md
 IMPORT_EXPORT_GUIDE_CN.md
 IMPORT_EXPORT_IMPLEMENTATION.md
 IMPORT_EXPORT_QUICKREF.md
+~/.tauri/lpe-reminder.key
+~/.tauri/lpe-reminder.key.pub
+PROJECT_SUMMARY.md
