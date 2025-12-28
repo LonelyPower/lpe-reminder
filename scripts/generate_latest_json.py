@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 """
 自动生成 Tauri latest.json（放在 nsis 目录）
@@ -32,17 +34,17 @@ def rfc3339():
 def find_nsis_dir() -> Path:
     base = Path("src-tauri/target/release/bundle/nsis")
     if not base.exists():
-        sys.exit(f"[ERROR] 未找到目录: {base}")
+        sys.exit(f"[ERROR] cantfind: {base}")
     return base
 
 
 def find_exact(pattern: str, base: Path) -> Path:
     matches = list(base.glob(pattern))
     if not matches:
-        sys.exit(f"[ERROR] 未找到匹配文件: {pattern}")
+        sys.exit(f"[ERROR] cantfind: {pattern}")
     if len(matches) > 1:
         names = ", ".join(m.name for m in matches)
-        sys.exit(f"[ERROR] 发现多个匹配（版本是否写错？）: {names}")
+        sys.exit(f"[ERROR] multiple matches found (version might be wrong): {names}")
     return matches[0]
 
 
@@ -85,7 +87,7 @@ def main():
     out = nsis_dir / "latest.json"
     out.write_text(json.dumps(latest, indent=2, ensure_ascii=False), "utf-8")
 
-    print(f"[OK] 已生成: {out}")
+    print(f"[OK] generated: {out}")
     print(json.dumps(latest, indent=2, ensure_ascii=False))
 
 
