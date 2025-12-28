@@ -8,6 +8,7 @@ import {
 import { safeExecute } from "../utils/errorHandler";
 import { playAudio } from "../utils/audioPlayer";
 import { minutesSecondsToMs } from "../utils/timeUtils";
+import { addTimerRecord as addTimerRecordDB } from "../utils/database";
 import type { AppSettings } from "./useSettingsDB";
 import type { useTimer } from "./useTimer";
 import type { useStopwatch } from "./useStopwatch";
@@ -268,6 +269,90 @@ export function useTimerHandlers(
     }
   }
 
+  /**
+   * 应用退出前，将当前正在进行的计时保存为一条记录
+   * - 用于关机 / 退出时避免丢失本轮工作或休息进度
+   */
+  async function flushActiveSessionsOnExit(): Promise<void> {
+    const now = Date.now();
+
+    try {
+      if (settings.timerMode === "countdown") {
+        // 倒计时模式
+        if (timer.mode.value === "work") {
+          const total = timer.totalDurationMs.value;
+          const remaining = timer.remainingMs.value;
+          const elapsed = Math.max(0, total - remaining);
+
+          if (elapsed > 0) {
+            await addTimerRecordDB({
+              id: `${now}-exit-countdown-work`,
+              record_type: "countdown",
+              mode: "work",
+              name: null,
+              category: currentCountdownCategory.value || "work",
+              start_time: now - elapsed,
+              end_time: now,
+              duration: elapsed,
+              created_at: now,
+            });
+            console.log("[ExitFlush] Saved ongoing countdown work:", elapsed, "ms");
+          }
+        } else if (timer.mode.value === "break") {
+          const elapsedBreak = timer.breakElapsedMs.value;
+          if (elapsedBreak > 0) {
+            await addTimerRecordDB({
+              id: `${now}-exit-countdown-break`,
+              record_type: "countdown",
+              mode: "break",
+              name: null,
+              category: currentCountdownCategory.value || "work",
+              start_time: now - elapsedBreak,
+              end_time: now,
+              duration: elapsedBreak,
+              created_at: now,
+            });
+            console.log("[ExitFlush] Saved ongoing countdown break:", elapsedBreak, "ms");
+          }
+        }
+      } else {
+        // 正计时模式
+        const elapsed = stopwatch.elapsedMs.value;
+        if (elapsed <= 0) return;
+
+        if (stopwatch.mode.value === "work") {
+          await addTimerRecordDB({
+            id: `${now}-exit-stopwatch-work`,
+            record_type: "stopwatch",
+            mode: "work",
+            name: null,
+            category: "work",
+            start_time: now - elapsed,
+            end_time: now,
+            duration: elapsed,
+            created_at: now,
+          });
+          console.log("[ExitFlush] Saved ongoing stopwatch work:", elapsed, "ms");
+        } else if (stopwatch.mode.value === "break") {
+          await addTimerRecordDB({
+            id: `${now}-exit-stopwatch-break`,
+            record_type: "stopwatch",
+            mode: "break",
+            name: null,
+            category: "break",
+            start_time: now - elapsed,
+            end_time: now,
+            duration: elapsed,
+            created_at: now,
+          });
+          console.log("[ExitFlush] Saved ongoing stopwatch break:", elapsed, "ms");
+        }
+      }
+    } catch (error) {
+      console.error("[ExitFlush] Failed to save active session on exit:", error);
+    }
+  }
+
   return {
     currentCountdownCategory,
     showStopwatchComplete,
@@ -278,5 +363,6 @@ export function useTimerHandlers(
     handleCountdownBreakEnd,
     handleStopwatchBreakEnd,
     handleStopwatchComplete,
+    flushActiveSessionsOnExit,
   };
 }

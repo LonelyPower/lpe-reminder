@@ -13,7 +13,8 @@ export function useWindowClose(
   settings: AppSettings,
   saveWindowState: () => Promise<void>,
   saveFloatingWindowPosition: (forceSaveToDb?: boolean) => Promise<void>,
-  saveSettings: () => Promise<void>
+  saveSettings: () => Promise<void>,
+  onBeforeQuit?: () => Promise<void>
 ) {
   const showCloseConfirm = ref(false);
 
@@ -35,6 +36,9 @@ export function useWindowClose(
       const behavior = settings.closeBehavior;
       if (behavior === "quit") {
         console.log("[CloseRequested] Exiting app...");
+        if (onBeforeQuit) {
+          await onBeforeQuit();
+        }
         await safeInvoke("app_exit");
         console.log("[CloseRequested] App exit called");
         return;
@@ -79,6 +83,9 @@ export function useWindowClose(
       }, "Hide window on close");
     } else {
       console.log("[CloseConfirm] Exiting app...");
+      if (onBeforeQuit) {
+        await onBeforeQuit();
+      }
       await safeInvoke("app_exit");
       console.log("[CloseConfirm] App exit called");
     }

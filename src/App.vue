@@ -60,6 +60,7 @@ const {
   handleCountdownBreakEnd,
   handleStopwatchBreakEnd,
   handleStopwatchComplete,
+  flushActiveSessionsOnExit,
 } = useTimerHandlers(settings, timer, stopwatch, addRecord);
 
 // 窗口状态管理
@@ -81,7 +82,8 @@ const { showCloseConfirm, setupCloseHandler, handleCloseConfirm } =
     settings,
     saveWindowState,
     floatingWindow.saveFloatingWindowPosition,
-    saveSettingsToDB
+    saveSettingsToDB,
+    flushActiveSessionsOnExit
   );
 
 // 托盘同步
@@ -91,6 +93,7 @@ const traySync = useTraySync(settings, timer, stopwatch, {
     showSettings.value = true;
   },
   onQuit: async () => {
+    await flushActiveSessionsOnExit();
     await saveWindowState();
     await floatingWindow.saveFloatingWindowPosition(true);
   },
