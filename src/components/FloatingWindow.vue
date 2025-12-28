@@ -275,14 +275,12 @@ onMounted(async () => {
   background: var(--bg-card);
   border-radius: 12px;
   user-select: none;
-  box-shadow: 0 4px 12px var(--shadow-color);
   border: 2px solid var(--border-color);
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .floating-window:hover {
-  box-shadow: 0 6px 16px var(--shadow-color);
   /* transform: translateY(-1px); 移除上跳效果以防止上边框被窗口裁剪 */
 }
 
