@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { getCurrentWindow, LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
-import { initDatabase } from "../utils/database";
+import { initDatabase, saveSetting } from "../utils/database";
 import { preloadAudio } from "../utils/audioPlayer";
 import { generateTestData } from "../utils/generateTestData";
 import type { AppSettings } from "./useSettingsDB";
@@ -53,9 +53,36 @@ export function useAppLifecycle(
       }
 
       if (savedX !== undefined && savedY !== undefined) {
-        console.log(`Restoring window position to (${savedX}, ${savedY})`);
+        // 防止窗口位置落在当前可视区域之外（例如外接显示器断开后）
+        const screenWidth = window.screen?.availWidth || window.innerWidth;
+        const screenHeight = window.screen?.availHeight || window.innerHeight;
+
+        let targetX = savedX;
+        let targetY = savedY;
+
+        // 如果窗口完全在可视区域之外，则将其移回主屏幕中央附近
+        const outOfHorizontal = targetX + savedWidth < 0 || targetX > screenWidth;
+        const outOfVertical = targetY + savedHeight < 0 || targetY > screenHeight;
+
+        if (outOfHorizontal || outOfVertical) {
+          targetX = Math.max(0, Math.round((screenWidth - savedWidth) / 2));
+          targetY = Math.max(0, Math.round((screenHeight - savedHeight) / 2));
+
+          // 更新设置中的位置，避免下次再次恢复到错误位置
+          settings.windowX = targetX;
+          settings.windowY = targetY;
+          await saveSetting("windowX", targetX.toString());
+          await saveSetting("windowY", targetY.toString());
+
+          console.log(
+            `Restoring window position adjusted from (${savedX}, ${savedY}) to (${targetX}, ${targetY})`
+          );
+        } else {
+          console.log(`Restoring window position to (${targetX}, ${targetY})`);
+        }
+
         try {
-          await appWindow.setPosition(new LogicalPosition(savedX, savedY));
+          await appWindow.setPosition(new LogicalPosition(targetX, targetY));
         } catch (e) {
           console.error("Failed to restore window position", e);
         }
