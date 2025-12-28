@@ -157,6 +157,13 @@ async function handleCheckUpdate() {
             </label>
           </div>
 
+          <div v-if="localSettings.timerMode === 'countdown'" class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" v-model="localSettings.autoStartNextCountdown" />
+              <span>休息结束后自动开始下一次计时</span>
+            </label>
+          </div>
+
           <div v-if="localSettings.timerMode === 'stopwatch'" class="form-group">
             <label>
               <span>正计时提醒时间</span>

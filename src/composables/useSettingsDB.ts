@@ -7,6 +7,8 @@ export interface AppSettings {
   workDurationSeconds: number;
   breakDurationMinutes: number;
   breakDurationSeconds: number;
+  /** 倒计时休息结束后是否自动开始下一次工作 */
+  autoStartNextCountdown: boolean;
   stopwatchBreakMinutes: number;
   stopwatchBreakSeconds: number;
   stopwatchReminderMinutes: number;
@@ -38,6 +40,7 @@ export const defaultSettings: AppSettings = {
   workDurationSeconds: 0,
   breakDurationMinutes: 5,
   breakDurationSeconds: 0,
+  autoStartNextCountdown: true,
   stopwatchBreakMinutes: 5,
   stopwatchBreakSeconds: 0,
   stopwatchReminderMinutes: 25,

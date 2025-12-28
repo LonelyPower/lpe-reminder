@@ -195,7 +195,14 @@ export function useTimerHandlers(
 
     // 结束休息（休息记录已在 onBreakEnd 中自动保存）
     timer.skipBreak(true);
-    console.log("[Countdown] Break ended manually by user");
+
+    // 根据设置决定是否自动开始下一次工作
+    if (!settings.autoStartNextCountdown) {
+      timer.pause();
+      console.log("[Countdown] Break ended, next cycle will not auto-start");
+    } else {
+      console.log("[Countdown] Break ended and next cycle auto-started");
+    }
   }
 
   /**
