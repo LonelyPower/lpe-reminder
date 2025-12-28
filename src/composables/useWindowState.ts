@@ -14,6 +14,7 @@ export function useWindowState(
   settings: AppSettings
 ) {
   const tempWindowSize = ref<{ width: number; height: number } | undefined>(undefined);
+  let openDialogCount = 0;
 
   /**
    * 保存窗口状态（尺寸和位置）
@@ -70,8 +71,8 @@ export function useWindowState(
       const factor = await appWindow.scaleFactor();
       const logicalSize = size.toLogical(factor);
 
-      // 保存当前尺寸以便恢复（只在首次保存）
-      if (!tempWindowSize.value) {
+      // 保存当前尺寸以便恢复（只在首次有对话框打开时保存）
+      if (!tempWindowSize.value && openDialogCount === 0) {
         tempWindowSize.value = {
           width: logicalSize.width,
           height: logicalSize.height,
@@ -89,6 +90,9 @@ export function useWindowState(
         await appWindow.setSize(new LogicalSize(newWidth, newHeight));
         console.log(`Adjusted window size for dialog: ${newWidth}x${newHeight}`);
       }
+
+      // 记录当前已打开的对话框数量
+      openDialogCount += 1;
     } catch (e) {
       console.error("Failed to resize window for dialog", e);
     }
@@ -108,6 +112,16 @@ export function useWindowState(
   async function handleDialogClose(): Promise<void> {
     const appWindow = getCurrentWindow();
     try {
+      // 先减少对话框计数
+      if (openDialogCount > 0) {
+        openDialogCount -= 1;
+      }
+
+      // 如果仍然有其它对话框打开，则不恢复窗口尺寸
+      if (openDialogCount > 0) {
+        return;
+      }
+
       if (tempWindowSize.value) {
         // 恢复原尺寸
         await appWindow.setSize(

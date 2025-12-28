@@ -176,6 +176,18 @@ onMounted(async () => {
   // 1. 初始化应用（数据库、窗口状态等）
   await initialize();
 
+  // 1.1 初始化完成后，根据已加载的设置同步倒计时时长
+  timer.updateDurations(
+    minutesSecondsToMs(
+      settings.workDurationMinutes,
+      settings.workDurationSeconds
+    ),
+    minutesSecondsToMs(
+      settings.breakDurationMinutes,
+      settings.breakDurationSeconds
+    )
+  );
+
   // 2. 设置计时器回调
   setupTimerCallbacks();
   setupStopwatchReminderCallback();
@@ -262,12 +274,13 @@ onMounted(async () => {
   );
   cleanupFunctions.value.push(stopStopwatchCompleteWatch);
 
-  // 8. 监听休息界面显示状态，调整窗口大小
+  // 7.1 监听休息遮罩显示状态，调整窗口大小
   const stopBreakOverlayWatch = watch(
     () => breakOverlayVisible.value,
     async (show) => {
       if (show) {
-        await handleDialogOpen(480); // Break Dialog 宽度 480px
+        // BreakOverlay 使用 BaseDialog，宽度 480px
+        await handleDialogOpen(480);
       } else {
         await handleDialogClose();
       }
