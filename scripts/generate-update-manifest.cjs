@@ -8,7 +8,7 @@
  * 2. 运行此脚本：node scripts/generate-update-manifest.js <version> <release-url>
  * 
  * 示例：
- * node scripts/generate-update-manifest.js 0.1.0 https://github.com/username/lpe-reminder/releases/download/v0.1.0
+ * node scripts/generate-update-manifest.js 1.0.1 https://github.com/LonelyPower/lpe-reminder/releases/download/v1.0.1
  */
 
 const fs = require('fs');

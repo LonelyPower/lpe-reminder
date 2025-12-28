@@ -37,9 +37,11 @@ jobs:
         run: pnpm tauri build
 
       - name: Generate latest.json
-        run: |
-          python scripts/generate_latest_json.py --version ${{ github.ref_name#v }} --notes "Release ${{ github.ref_name }}"
         shell: pwsh
+        run: |
+            $version = "${{ github.ref_name }}".TrimStart('v')
+            python scripts/generate_latest_json.py --version $version --notes "Release ${{ github.ref_name }}"
+
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
