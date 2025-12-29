@@ -10,6 +10,7 @@ import BreakOverlay from "./components/Dialog_Break.vue";
 import SettingsDialog from "./components/Dialog_Settings.vue";
 import CloseConfirmDialog from "./components/Dialog_CloseConfirm.vue";
 import StopwatchCompleteDialog from "./components/Dialog_StopwatchComplete.vue";
+import UpdateDialog from "./components/Dialog_Update.vue";
 
 // Composables
 import { useTimer } from "./composables/useTimer";
@@ -30,6 +31,16 @@ import { minutesSecondsToMs } from "./utils/timeUtils";
 // ==================== 状态 ====================
 const activeTab = ref<"timer" | "statistics">("timer");
 const showSettings = ref(false);
+
+// 更新对话框状态
+const showUpdateDialog = ref(false);
+const updateVersion = ref('');
+const updateCurrentVersion = ref('');
+const updateNotes = ref('');
+const isUpdateDownloading = ref(false);
+const isUpdateComplete = ref(false);
+const updateError = ref('');
+const showLatestMessage = ref(false);
 
 // ==================== Composables ====================
 const { settings, init: initSettings, save: saveSettingsToDB } = useSettings();
@@ -172,6 +183,35 @@ function handleReset() {
   timer.reset();
 }
 
+// 更新对话框事件处理
+let updateFunctionsRef: {
+  downloadAndInstallUpdate: () => Promise<boolean>;
+  relaunchApp: () => Promise<void>;
+} | null = null;
+
+async function handleUpdateConfirm() {
+  if (updateFunctionsRef) {
+    await updateFunctionsRef.downloadAndInstallUpdate();
+  }
+}
+
+async function handleUpdateRelaunch() {
+  if (updateFunctionsRef) {
+    await updateFunctionsRef.relaunchApp();
+  }
+}
+
+function handleUpdateLater() {
+  showUpdateDialog.value = false;
+  isUpdateComplete.value = false;
+}
+
+function closeUpdateDialog() {
+  showUpdateDialog.value = false;
+  updateError.value = '';
+  isUpdateComplete.value = false;
+}
+
 // ==================== 生命周期 ====================
 const cleanupFunctions = ref<Array<() => void>>([]);
 
@@ -200,6 +240,55 @@ onMounted(async () => {
     const { checkUpdatesOnStartup } = await import("./utils/updater");
     checkUpdatesOnStartup();
   }
+
+  // 2.2 监听更新事件
+  const { listen } = await import("@tauri-apps/api/event");
+  const { downloadAndInstallUpdate, relaunchApp } = await import("./utils/updater");
+  
+  // 存储更新函数引用
+  updateFunctionsRef = { downloadAndInstallUpdate, relaunchApp };
+  
+  // 发现新版本
+  const unlistenFound = await listen<any>('update-found', (event) => {
+    updateVersion.value = event.payload.version || '';
+    updateCurrentVersion.value = event.payload.currentVersion || '';
+    updateNotes.value = event.payload.body || '暂无更新说明';
+    isUpdateDownloading.value = false;
+    isUpdateComplete.value = false;
+    updateError.value = '';
+    showUpdateDialog.value = true;
+  });
+  cleanupFunctions.value.push(unlistenFound);
+
+  // 已是最新版本
+  const unlistenLatest = await listen('update-latest', () => {
+    showLatestMessage.value = true;
+    setTimeout(() => {
+      showLatestMessage.value = false;
+    }, 3000);
+  });
+  cleanupFunctions.value.push(unlistenLatest);
+
+  // 下载中
+  const unlistenDownloading = await listen('update-downloading', () => {
+    isUpdateDownloading.value = true;
+  });
+  cleanupFunctions.value.push(unlistenDownloading);
+
+  // 下载完成
+  const unlistenComplete = await listen('update-complete', () => {
+    isUpdateDownloading.value = false;
+    isUpdateComplete.value = true;
+  });
+  cleanupFunctions.value.push(unlistenComplete);
+
+  // 更新错误
+  const unlistenError = await listen<any>('update-error', (event) => {
+    updateError.value = event.payload.error || '未知错误';
+    isUpdateDownloading.value = false;
+    showUpdateDialog.value = true;
+  });
+  cleanupFunctions.value.push(unlistenError);
 
   // 2.1 设置正计时提醒时间
   const reminderMs = minutesSecondsToMs(
@@ -422,6 +511,32 @@ onBeforeUnmount(() => {
       @confirm="handleStopwatchComplete"
       @cancel="showStopwatchComplete = false"
     />
+
+    <!-- 更新对话框 -->
+    <UpdateDialog
+      :visible="showUpdateDialog"
+      :version="updateVersion"
+      :current-version="updateCurrentVersion"
+      :release-notes="updateNotes"
+      :is-downloading="isUpdateDownloading"
+      :is-complete="isUpdateComplete"
+      :error-message="updateError"
+      @close="closeUpdateDialog"
+      @confirm="handleUpdateConfirm"
+      @relaunch="handleUpdateRelaunch"
+      @later="handleUpdateLater"
+    />
+
+    <!-- 已是最新版本提示 -->
+    <Transition name="toast-fade">
+      <div v-if="showLatestMessage" class="toast-message">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="9 12 11 14 15 10"></polyline>
+        </svg>
+        您已经在使用最新版本
+      </div>
+    </Transition>
   </main>
 </template>
 
@@ -564,6 +679,45 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Toast 消息样式 */
+.toast-message {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px var(--shadow-color);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 2000;
+}
+
+.toast-message svg {
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-fade-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-12px);
 }
 </style>
 <!-- TODO: 正计时提醒 -->
