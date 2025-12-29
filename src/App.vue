@@ -235,11 +235,9 @@ onMounted(async () => {
   setupTimerCallbacks();
   setupStopwatchReminderCallback();
   
-  // 2.1 启动时自动检查更新（静默）
-  if (import.meta.env.PROD) {
-    const { checkUpdatesOnStartup } = await import("./utils/updater");
-    checkUpdatesOnStartup();
-  }
+  // 2.1 启动时自动检查更新（始终启用）
+  const { checkUpdatesOnStartup } = await import("./utils/updater");
+  checkUpdatesOnStartup();
 
   // 2.2 监听更新事件
   const { listen } = await import("@tauri-apps/api/event");
