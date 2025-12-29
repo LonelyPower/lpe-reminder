@@ -39,7 +39,8 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": ["default", "desktop-capability"]
     }
   },
   "bundle": {
@@ -57,7 +58,7 @@
   "plugins": {
     "updater": {
       "active": true,
-       "dialog": true,
+      "dialog": true,
       "endpoints": [
         "https://github.com/LonelyPower/lpe-reminder/releases/latest/download/latest.json"
       ],
