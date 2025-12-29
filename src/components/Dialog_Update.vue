@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import BaseDialog from './Dialog_Base.vue';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 interface Props {
   visible: boolean;
@@ -30,6 +31,14 @@ const emit = defineEmits<{
 
 // 格式化更新说明
 const formattedNotes = ref(props.releaseNotes || '暂无更新说明');
+
+// 生成下载URL
+const downloadUrl = `https://github.com/LonelyPower/lpe-reminder/releases/latest`;
+
+// 打开下载链接
+async function openDownloadPage() {
+  await openUrl(downloadUrl);
+}
 </script>
 
 <template>
@@ -37,43 +46,52 @@ const formattedNotes = ref(props.releaseNotes || '暂无更新说明');
     <template #header>
       <div class="update-header">
         <div class="icon-wrapper">
-          <svg v-if="!isComplete && !errorMessage" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <!-- <svg v-if="!isComplete && !errorMessage" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10"></polyline>
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-          </svg>
-          <svg v-else-if="isComplete" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="success-icon">
+          </svg> -->
+          <!-- <svg v-else-if="isComplete" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="success-icon">
             <circle cx="12" cy="12" r="10"></circle>
             <polyline points="9 12 11 14 15 10"></polyline>
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
+          </svg> -->
+          <!-- <svg v-else xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
+          </svg> -->
         </div>
         <div class="title-wrapper">
           <h2 v-if="!isComplete && !errorMessage">发现新版本</h2>
           <h2 v-else-if="isComplete">更新完成</h2>
-          <h2 v-else>更新失败</h2>
+          <h2 v-else>手动下载更新</h2>
           <p class="version-info" v-if="!errorMessage">
             {{ currentVersion }} → <span class="new-version">{{ version }}</span>
           </p>
         </div>
-        <button type="button" class="close-btn" @click="emit('close')" aria-label="关闭">
+        <!-- <button type="button" class="close-btn" @click="emit('close')" aria-label="关闭">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
-        </button>
+        </button> -->
       </div>
     </template>
 
     <!-- 内容区域 -->
     <div class="update-content">
-      <!-- 错误信息 -->
-      <div v-if="errorMessage" class="error-content">
-        <p class="error-text">{{ errorMessage }}</p>
+      <!-- 手动下载提示 -->
+      <div v-if="errorMessage" class="manual-download-content">
+        <p class="download-text">自动更新失败，请手动下载最新版本</p>
+        <a :href="downloadUrl" class="download-link" @click.prevent="openDownloadPage">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          前往 GitHub 下载最新版本
+        </a>
+        <p class="download-tip">点击链接将在浏览器中打开下载页面</p>
       </div>
 
       <!-- 下载中 -->
@@ -119,10 +137,13 @@ const formattedNotes = ref(props.releaseNotes || '暂无更新说明');
           </button>
         </template>
 
-        <!-- 错误时的按钮 -->
+        <!-- 手动下载时的按钮 -->
         <template v-else-if="errorMessage">
-          <button type="button" class="btn-primary" @click="emit('close')">
-            关闭
+          <button type="button" class="btn-secondary" @click="emit('close')">
+            稍后下载
+          </button>
+          <button type="button" class="btn-primary" @click="openDownloadPage">
+            立即前往下载
           </button>
         </template>
       </div>
@@ -228,7 +249,7 @@ const formattedNotes = ref(props.releaseNotes || '暂无更新说明');
 
 .downloading-content,
 .complete-content,
-.error-content {
+.manual-download-content {
   text-align: center;
   padding: 24px 0;
 }
@@ -262,11 +283,42 @@ const formattedNotes = ref(props.releaseNotes || '暂无更新说明');
   color: var(--text-secondary);
 }
 
-.error-text {
-  margin: 0;
+.download-text {
+  margin: 0 0 16px 0;
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.6;
+}
+
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--primary-color-10);
+  color: var(--primary-color);
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  margin: 8px 0;
+}
+
+.download-link:hover {
+  background: var(--primary-color-20);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--primary-color-20);
+}
+
+.download-link svg {
+  flex-shrink: 0;
+}
+
+.download-tip {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .update-actions {
